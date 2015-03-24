@@ -1,0 +1,18 @@
+bower_components/
+
+
+#############
+## LaTex
+#############
+
+report/*.aux
+report/*.toc
+report/*.synctex.gz
+report/*.log
+report/*.tdo
+report/*.lof
+report/*.bbl
+report/*.blg
+report/*.out
+# report/*.pdf
+npm-debug.log

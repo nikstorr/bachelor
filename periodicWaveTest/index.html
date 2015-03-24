@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="../lib/dsp.js"></script>
+    <script>
+      // byggt á
+      // http://www.sitepoint.com/using-fourier-transforms-web-audio-api/
+      // http://codepen.io/Clafou/pen/ktKcL
+
+      /*
+      bý til röð af sínusgildum, eitt period.
+      prófa keyra fourier greiningu á þessa röð: time signal.
+      fæ út frequency components.
+      byggi upp periodicWave frá henni (real og imaginary röðum),
+      fæ út "time signal starting from its frequency representation".
+      -> oscillator byggðuar á þessu wave-table hljómar eins og
+      innbyggður oscillator stilltur á sine!
+      http://www.sitepoint.com/using-fourier-transforms-web-audio-api/#comment-1630994210
+      */
+
+      var audioContext = new AudioContext();
+
+      // var count = 4096;
+      var count = 128;
+      var sineValues = new Array(count);
+      for( var i=0; i < count; i++ ) {
+        sineValues[i] = Math.sin( (i / count) * (2 * Math.PI) );
+      }
+      // Fourier transform:
+      // var ft = new DFT( sineValues.length, 44100 );
+      var ft = new DFT( sineValues.length );
+      ft.forward( sineValues );
+
+      console.log( ft );
+
+      var waveTable = audioContext.createPeriodicWave(ft.real, ft.imag);
+
+
+      function play() {
+        // standard dæmi:
+        // osc = audioContext.createOscillator();
+        // osc.frequency.value = 440;
+        // osc.type = 'sine';
+        // osc.connect( audioContext.destination );
+        // osc.start(0);
+
+        // wave table:
+        osc = audioContext.createOscillator();
+        osc.frequency.value = 440;
+        osc.setPeriodicWave( waveTable );
+        osc.connect( audioContext.destination );
+        osc.start(0);
+      }
+
+      function stop() {
+        osc.disconnect();
+      }
+
+      function toggle() {
+
+        $('button').toggle();
+      }
+
+    </script>
+  </head>
+  <body>
+
+<h1>Siren</h1>
+<button onclick="play();toggle();">Play</button>
+<button onclick="stop();toggle();" style="display:none">Stop</button>
+
+  </body>
+</html>
