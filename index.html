@@ -1,11 +1,26 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>breedesizer // audiovolve</title>
+        <title>breedesizer 2</title>
        <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
 
          <script src="bower_components/jquery/dist/jquery.min.js"></script>
          <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
+
+<!--
+         <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
+         <script>
+         $(function() {
+             $(".dial").knob();
+         });
+
+         $("#slider-effect")
+                 .val(27)
+                 .trigger('change');
+
+         </script>
+-->
+
 
       <!--  <script src="bower_components/jquery-ui-1.11.3.custom/jquery-ui.js"></script>
         <script src="bower_components/jquery-ui-1.11.3.custom/jquery-ui.min.js"></script> -->
@@ -18,31 +33,26 @@
 
         <script src="lib/recorderjs/recorder.js"></script>
 
-        <!-- script src="bower_components/midi/build/MIDI.js"></script -->
-
-        <!-- script src="bower_components/midi/js/MIDI/AudioDetect.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/MIDI/LoadPlugin.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/MIDI/Plugin.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/MIDI/Player.js" type="text/javascript"></script>
-
-        <script src="bower_components/midi/js/MusicTheory/Synesthesia.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/Widgets/Loader.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/Window/Event.js" type="text/javascript"></script>
-        <script src="bower_components/midi/js/Window/DOMLoader.XMLHttp.js" type="text/javascript"></script>
-
-        <script src="bower_components/midi/inc/jasmid/stream.js"></script>
-        <script src="bower_components/midi/inc/jasmid/midifile.js"></script>
-        <script src="bower_components/midi/inc/jasmid/replayer.js"></script>
-
-        <script src="bower_components/midi/inc/Base64.js" type="text/javascript"></script>
-        <script src="bower_components/midi/inc/base64binary.js" type="text/javascript"></script -->
-
-        <!-- script src="bower_components/midi/js/MIDI/AudioDetect.js"></script>
-        <script src="bower_components/midi/js/MIDI/LoadPlugin.js"></script>
-        <script src="bower_components/midi/js/MIDI/Plugin.js"></script>
-        <script src="bower_components/midi/js/MIDI/Player.js"></script -->
 
         <style>
+          body{
+            width:90%;
+            background-color:#FFFFF;
+            margin-top:-30px;
+          }
+
+          h1 {
+              font-family: 'Lobster', Georgia, Times, serif;
+              font-size: 70px;
+
+          }
+
+          p {
+              font-family: 'Cabin', Helvetica, Arial, sans-serif;
+              font-size: 15px;
+
+          }
+
           .member-container {
             float: left;
           }
@@ -52,112 +62,166 @@
           }
 
           .member-container span.computing-message {
-            float:right; color: deeppink; display:none;
+            padding-left:5pt; color: red; display:none; font-size:8pt;;
           }
+
+
           #slider-container {
-            float:right;
-            width:80%;
+            float:left;
+            width:20%;
+            margin-right:5px;
           }
           #slider-container > div {
-            float:left;
-            width:33%;
-            margin-right: 1px;
+              width:95%;
+              float:right;
           }
-          #modulation-container {
-            margin-top: 20px;
+
+          input[type=text]
+          {
+            width:40px;
           }
-          #modulation-container > div {
-            float:left;
-            width: 33%;
-            margin-right: 1px;
-            background-color: lightblue;
+
+          #population-container {
+            float:right;
+            width:65%;
+            margin-left:5px;
           }
+
+          #population-container > div {
+            margin-top:20pt;
+          }
+
+
+          #left
+              {
+                width: 400px;
+                float: left;
+                margin-left:5px;
+
+              }
+
+              #right
+              {
+                margin-left: 405px; /* Change this to whatever the width of your left column is*/
+
+              }
+
+              .clear
+              {
+                clear: both;
+              }
+
+              #meter{
+              }
+
+            #canvas{
+              position:absolute;
+              margin-top: -30pt;
+              margin-left:31%;
+            }
         </style>
+
+
+
+
     </head>
     <body>
 
-        <div id="slider-container">
-          <div style="background-color:lightcyan;">
-            <p>
+
+      <!-- volume meter <script src="meter.js"></script> -->
+      <!--
+      <input type="button" id="guitar" value="Play Live Guitar" />
+      <script>
+        $(document).ready(function(){
+          $("#guitar").click(function(){
+            live = true;
+          });
+        });
+      </script>
+    -->
+
+<canvas id="canvas" width="1000" height="325" style="display: block;"></canvas>
+
+<div class="outer-container">
+  <div id="container">
+      <div id="left">
+        <h1>Amp Mod</h1>
+        <!-- GENERATION MESSAGE -->
+        <h2></h2>
+
+      <input type="button" id="back" value="<-- Back" />
+      <input type="button" class="evolve" value="Evolve -->" />
+  <hr>
+      </div>
+      <div id="right">
+
+        <canvas id="meter" width="60" height="130" style="display: block;"></canvas>
+      </div>
+      <div class="clear"></div>
+  </div>
+
+        <div style="background-color:#FFFFFF" id="slider-container">
+
+            <div>
+              <p><label for="amount-effect">EFFECT:</label></p>
+              <input type="text" id="amount-effect" readonly style="border:0; color:#B1B534; font-weight:bold; ">
+              <div id="slider-effect" ></div>
+            </div>
+
+
+              <div>
+                <p><label for="amount-distortion">DISTORTION:</label></p>
+                <input type="text" id="amount-distortion" readonly style="border:0; color:#B1B534; font-weight:bold;">
+                <div id="slider-distortion" ></div>
+              </div>
+
+          <div>
+              <p>
               <label for="amount-pMutateAddConnection">pMutateAddConnection:</label>
-              <input type="text" id="amount-pMutateAddConnection" readonly style="border:0; color:#f6931f; font-weight:bold;">
             </p>
+              <input type="text" id="amount-pMutateAddConnection" readonly style="border:0; color:#B1B534; font-weight:bold;">
             <div id="slider-pMutateAddConnection"></div>
-            <p>
+          </div>
+
+              <div><p>
               <label for="amount-pMutateAddNode">pMutateAddNode:</label>
-              <input type="text" id="amount-pMutateAddNode" readonly style="border:0; color:#f6931f; font-weight:bold;">
             </p>
+              <input type="text" id="amount-pMutateAddNode" readonly style="border:0; color:#B1B534; font-weight:bold;">
             <div id="slider-pMutateAddNode"></div>
           </div>
 
-          <div>
-            <p>
-              <label for="amount-initialMutationCount">initialMutationCount:</label>
-              <input type="text" id="amount-initialMutationCount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
+              <div>
+
+                <p><label for="amount-initialMutationCount">initialMutationCount:</label></p>
+              <input type="text" id="amount-initialMutationCount" readonly style="border:0; color:#B1B534; font-weight:bold;">
             <div id="slider-initialMutationCount"></div>
-            <p>
-              <label for="amount-postMutationCount">postXOMutationCount:</label>
-              <input type="text" id="amount-postMutationCount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
+          </div>
+
+              <div>
+                <p><label for="amount-postMutationCount">postXOMutationCount:</label></p>
+              <input type="text" id="amount-postMutationCount" readonly style="border:0; color:#B1B534; font-weight:bold;">
             <div id="slider-postMutationCount"></div>
           </div>
 
           <div>
-            <p>
-              <label for="amount-ftSize">Fourier transform table size:</label>
-              <input type="text" id="amount-ftSize" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
+                <p><label for="amount-ftSize">Fourier transform table size:</label></p>
+              <input type="text" id="amount-ftSize" readonly style="border:0; color:#B1B534; font-weight:bold;">
             <div id="slider-ftSize"></div>
-            <div style="background-color:lightcyan;">
-              <p>
-                <label for="amount-repetition">Repetition count:</label>
-                <input type="text" id="amount-repetition" readonly style="border:0; color:#f6931f; font-weight:bold;">
+          </div>
+
+              <div>
+                <p><label for="amount-repetition">Repetition count:</label></p>
+                <input type="text" id="amount-repetition" readonly style="border:0; color:#B1B534; font-weight:bold;">
                 <span style="white-space:nowrap;">
                     <input type="checkbox" name="variation" id="variation" /><label for="variation">with variation</label>
                 </span>
-              </p>
               <div id="slider-repetition"></div>
+
             </div>
-          </div>
-        </div>
-
-
-        <h1>breedesizer</h1>
-        <h2></h2>
-        <input type="button" id="back" value="<-- Back" />
-        <input type="button" class="evolve" value="Evolve -->" />
-        <br />
-        <div id="modulation-container">
-
-          <input type="checkbox" name="modulate" id="modulate" checked />
-          <label for="modulate">Modulate (blue waveform)</label>
-
-          <div>
-            <p>
-              <label for="amount-modulatorgain">Modulator gain:</label>
-              <input type="text" id="amount-modulatorgain" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
-            <div id="slider-modulatorgain"></div>
-          </div>
-
-          <div>
-            <p>
-              <label for="amount-modulatordetune">Modulator detune:</label>
-              <input type="text" id="amount-modulatordetune" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
-            <div id="slider-modulatordetune"></div>
-          </div>
-
-          <div>
-            <p>
-              <label for="amount-modulatorquarter">Modulator quarter octave offsets:</label>
-              <input type="text" id="amount-modulatorquarter" readonly style="border:0; color:#f6931f; font-weight:bold;">
-            </p>
-            <div id="slider-modulatorquarter"></div>
-          </div>
 
         </div>
+
+  <div id="population-container">
 
         <br style="clear:both;" /><br />
 
@@ -165,9 +229,8 @@
           Click on waveforms to activate them for playing.
         </span>
 
-        <br />
+        <p />
 
-        <div id="population-container">
 
           <div id="member-container-0" class="member-container">
             <div id="graph-0"></div>
@@ -229,37 +292,38 @@
             <label for="member-9">Individual 9</label><span class="computing-message">Computing</span>
           </div>
 
-        </div>
+          <br clear="both"/>
+          <br />
 
-        <br clear="both"/>
-        <br />
+          <input type="button" class="evolve" value="Evolve -->" />
+          <span>
+            Use the checkboxes to select multiple parents.
+            Otherwise the currently active waveform (yellow) will be selected as the one parent.
+          </span>
 
-        <input type="button" class="evolve" value="Evolve -->" />
-        <span>
-          Use the checkboxes to select multiple parents.
-          Otherwise the currently active waveform (yellow) will be selected as the one parent.
-        </span>
+          <br /><br />
 
-        <br /><br />
+  <!--
+          <input type="checkbox" name="envelope" id="envelope" checked />
+          <label for="envelope">Use envelope (ADSR)</label>
+  -->
+          <br />
 
-        <input type="checkbox" name="envelope" id="envelope" checked />
-        <label for="envelope">Use envelope (ADSR)</label>
+          <input type="button" id="recordSample" value="Record" />
+          <input type="button" id="stopRecordSample" value="Stop Record" />
 
-        <br />
 
-        <div id="keyboard"></div>
+          <br /><br />
 
-        <br /><br />
+          <p>Selected CPPN:</p>
+          <pre id="printCPPN"></pre>
+    </div>
 
-        <input type="button" id="recordSample" value="Record sample at C3" />
+</div>
 
-        <br /><br />
 
-        <p>Selected CPPN:</p>
-        <pre id="printCPPN"></pre>
-
-        <br /><br /><br />
-
+        <p /><p /><p />
         <script src="main2.js"></script>
+
     </body>
 </html>
