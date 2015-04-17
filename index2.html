@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>breedesizer 2</title>
+       <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
+
+         <script src="bower_components/jquery/dist/jquery.min.js"></script>
+         <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
+
+         <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
+
+
+        <script src="lib/neat-build.js"></script>
+        <script src="lib/dygraph-combined.js"></script>
+        <script src="lib/dsp.js"></script>
+        <script src="lib/recorderjs/recorder.js"></script>
+
+
+        <style>
+
+        * {
+        margin: 0px;
+        padding: 0px;
+        }
+        body {
+        font: 10px Arial, Helvetica, sans-serif;
+        background: #FFFFFF;
+        align:center;
+        }
+        #main_container {
+        width: 55%;
+        margin-top: 20px;
+        margin-left: 20px;
+        border-radius: 25px;
+        border: 2px solid #8AC007;
+        }
+
+        .basic_row {
+        clear: both;
+        padding-left:8pt;
+        position: relative;
+        border: 1px solid #990000;
+        border-top-style: solid;
+    border-right-style: none;
+    border-bottom-style: none;
+    border-left-style: none;
+
+        }
+
+        .two_col {
+        clear: both;
+        padding:2pt;
+        float: left;
+        margin-top:-40pt;
+        padding-left:8pt
+        }
+
+        .two_col > div{
+          height:70pt
+        }
+
+        #left{
+          float:left;
+        }
+        #right{
+          float:right;
+          margin-left: 40pt
+        }
+
+        .knobber {
+          float: left;
+          display: block;
+        }
+
+        .knobber > div{
+          padding-left:8pt
+        }
+
+        .knobber >p{
+          padding-left:12pt
+        }
+
+
+        .clear_float {
+        line-height: 0px;
+        clear: both;
+        }
+
+        #container{
+          margin-top:20pt
+          border: 1px solid #990000;
+          border-top-style: solid;
+      border-right-style: none;
+      border-bottom-style: none;
+      border-left-style: none;
+
+        }
+
+        #container > div{
+          margin-left:20pt;
+          float:left;
+        }
+
+        #container > div[id="spectrum"]{
+          margin-top:0pt
+        }
+
+
+
+        .member-container {
+          float: left;
+          margin-top:10pt
+        }
+        .member-container > div[id^="graph-"] {
+          width: 180px;
+          height: 150px;
+        }
+
+        .member-container span.computing-message {
+          padding-left:5pt; color: red; display:none; font-size:8pt;;
+        }
+
+        #variation_label {
+            display: block;
+            padding-left: 15px;
+            text-indent: -15px;
+        }
+        #variation {
+            width: 13px;
+            height: 13px;
+            padding: 0;
+            margin:0;
+            vertical-align: bottom;
+            position: relative;
+            top: -1px;
+            *overflow: hidden;
+        }
+        #variation_box{
+          margin-top:-135pt;
+          margin-left:59pt
+        }
+
+        #butons > div{
+          float:left;
+          padding-bottom:4pt
+        }
+
+        </style>
+
+
+
+
+    </head>
+    <body>
+
+
+
+      <div id="main_container">
+
+        <div class="basic_row">
+
+          <div id="container">
+              <div id="title">
+                <h1>Amp Mod</h1>
+                <h2></h2>
+              </div>
+              <div id="spectrum">
+
+                <canvas id="meter" width="60" height="130" style="display: block;"></canvas>
+              </div>
+            <canvas id="canvas" width="500" height="60" style="display: block;"></canvas>
+              <div class="clear"></div>
+          </div>
+
+        </div>
+
+        <div class="two_col">
+
+          <div id="left">
+            <div class="knobber">
+              <p><label for="amount-distortion">Distortion:</label></p>
+              <input type="text" id="distortion" value="75" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+            </div>
+            <div class="knobber">
+              <p><label for="amount-distortion">Effect:</label></p>
+              <input type="text" id="effect" value="75" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+            </div>
+          <div class="knobber">
+            <p><label for="amount-pMutateAddConnection">Connections:</label></p>
+            <input type="text" id="pMutateAddConnection" value="75" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+          </div>
+          <div class="knobber">
+            <p><label for="amount-pMutateAddNode">Nodes:</label></p>
+            <input type="text" id="pMutateAddNode" value="0" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+          </div>
+
+          <div class="knobber">
+            <p><label for="amount-initialMutationCount">Input Mutation:</label></p>
+            <input type="text" id="initialMutationCount" value="0" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+          </div>
+          <div class="knobber">
+            <p><label for="amount-postMutationCount">Output Mutation:</label></p>
+            <input type="text" id="postMutationCount" value="1" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+          </div>
+      <!--  <div class="knobber">
+          <div id="rep">
+            <p><label for="amount-repetition">Repetition count:</label></p>
+            <input type="checkbox" name="variation" id="variation" /><label for="variation">with variation</label>
+            <input type="text" id="repetition" value="1" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+          </div>
+        </div>
+      -->
+        <div class="knobber">
+          <div id="rep">
+            <p><label for="amount-repetition">( Repetition count: )</label></p>
+            <input type="text" id="repetition" value="1" class="dial" data-width="60" data-fgColor="#7fdeeb" data-skin="tron" data-thickness=".3" data-displayPrevious=false>
+            <!--
+            <input type="checkbox" name="variation" id="variation" />
+            <label for="variation">with variation</label>
+    -->
+
+          </div>
+          <div id="variation_box">
+            <label id="variation_label"><input type="checkbox" name="variation" id="variation"/> variation?</label>
+          </div>
+        </div>
+
+      </div>
+
+
+        <div id="right">
+
+            <div id="buttons">
+              <div>
+                <input type="button" id="back" value="<-- Back" />
+                <input type="button" class="evolve" value="Next Generation -->" />
+              </div>
+              <div>
+                <input type="button" class="evolvenextten" value="Jump 10 Generations -->" />
+              </div>
+            </br>
+              <div>
+                <input type="button" id="recordSample" value="Record" />
+                <input type="button" id="stopRecordSample" value="Stop Recording" />
+              </div>
+            </div>
+
+        </div>
+
+      </div> <!-- twocol -->
+
+        <div class="basic_row">
+          <span>
+            Click on waveforms to activate them for playing.
+          </span>
+
+          <p />
+
+
+            <div id="member-container-0" class="member-container">
+              <div id="graph-0"></div>
+              <input type="checkbox" name="member-0" id="member-0" />
+              <label for="member-0">Individual 0</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-1" class="member-container">
+              <div id="graph-1"></div>
+              <input type="checkbox" name="member-1" id="member-1" />
+              <label for="member-1">Individual 1</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-2" class="member-container">
+              <div id="graph-2"></div>
+              <input type="checkbox" name="member-2" id="member-2" />
+              <label for="member-2">Individual 2</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-3" class="member-container">
+              <div id="graph-3"></div>
+              <input type="checkbox" name="member-3" id="member-3" />
+              <label for="member-3">Individual 3</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-4" class="member-container">
+              <div id="graph-4"></div>
+              <input type="checkbox" name="member-4" id="member-4" />
+              <label for="member-4">Individual 4</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-5" class="member-container">
+              <div id="graph-5"></div>
+              <input type="checkbox" name="member-5" id="member-5" />
+              <label for="member-5">Individual 5</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-6" class="member-container">
+              <div id="graph-6"></div>
+              <input type="checkbox" name="member-6" id="member-6" />
+              <label for="member-6">Individual 6</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-7" class="member-container">
+              <div id="graph-7"></div>
+              <input type="checkbox" name="member-7" id="member-7" />
+              <label for="member-7">Individual 7</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-8" class="member-container">
+              <div id="graph-8"></div>
+              <input type="checkbox" name="member-8" id="member-8" />
+              <label for="member-8">Individual 8</label><span class="computing-message">Computing</span>
+            </div>
+
+            <div id="member-container-9" class="member-container">
+              <div id="graph-9"></div>
+              <input type="checkbox" name="member-9" id="member-9" />
+              <label for="member-9">Individual 9</label><span class="computing-message">Computing</span>
+            </div>
+            <br clear="both"/>
+            <br />
+
+            <span>
+              Use the checkboxes to select multiple parents.
+              Otherwise the currently active waveform (yellow) will be selected as the one parent.
+            </span>
+
+            <br /><br />
+
+<!--
+            <input type="checkbox" name="envelope" id="envelope" checked />
+            <label for="envelope">Use envelope (ADSR)</label>
+-->
+
+      </div>
+
+        <div class="basic_row">
+        <div ></>
+        <div >
+          <p>Selected CPPN:</p>
+          <pre id="printCPPN"></pre>
+          <script src="main2.js"></script>
+        </div>
+
+        <div class="basic_row">
+        //footer info or footer div
+        </div>
+
+      </div>
+
+
+
+
+</body>
+</html>
