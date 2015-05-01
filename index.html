@@ -1,236 +1,491 @@
-<!DOCTYPE html>
 <html>
-    <head>
-        <title>breedesizer 2</title>
-       <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
-
-         <script src="bower_components/jquery/dist/jquery.min.js"></script>
-         <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
-
-<!--
-         <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
-         <script>
-         $(function() {
-             $(".dial").knob();
-         });
-
-         $("#slider-effect")
-                 .val(27)
-                 .trigger('change');
-
-         </script>
--->
+<head>
+  <title>Wallyfier</title>
+ <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
 
 
-      <!--  <script src="bower_components/jquery-ui-1.11.3.custom/jquery-ui.js"></script>
-        <script src="bower_components/jquery-ui-1.11.3.custom/jquery-ui.min.js"></script> -->
+   <script src="bower_components/jquery/dist/jquery.min.js"></script>
+   <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
+
+   <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
+
+  <script src="lib/neat-build.js"></script>
+<!--  <script src="lib/dygraph-combined.js"></script> -->
+  <script src="lib/dsp.js"></script>
+  <script src="lib/recorderjs/recorder.js"></script>
 
 
-        <script src="lib/neat-build.js"></script>
-        <script src="lib/dygraph-combined.js"></script>
-        <script src="lib/dsp.js"></script>
-        <script src="bower_components/qwerty-hancock/dist/qwerty-hancock.min.js"></script>
-
-        <script src="lib/recorderjs/recorder.js"></script>
+  <!--  UPLOAD -->
+    <link href="http://hayageek.github.io/jQuery-Upload-File/uploadfile.min.css" rel="stylesheet">
+    <script src="http://hayageek.github.io/jQuery-Upload-File/jquery.uploadfile.min.js"></script>
 
 
-        <style>
-          body{
-            width:90%;
-            background-color:#FFFFF;
-            margin-top:-30px;
-          }
-
-          h1 {
-              font-family: 'Lobster', Georgia, Times, serif;
-              font-size: 70px;
-
-          }
-
-          p {
-              font-family: 'Cabin', Helvetica, Arial, sans-serif;
-              font-size: 15px;
-
-          }
-
-          .member-container {
-            float: left;
-          }
-          .member-container > div[id^="graph-"] {
-            width: 180px;
-            height: 150px;
-          }
-
-          .member-container span.computing-message {
-            padding-left:5pt; color: red; display:none; font-size:8pt;;
-          }
+  <script>
+    var i = 0;
+    $(document).ready(function()
+    {
+    	$("#fileuploader").uploadFile({
+    	url:"http://localhost/breedesizer/uploads",
+    	fileName:"file" + (i++)
+    	});
+      // $("#variation")[0].checked = true;
+    });
 
 
-          #slider-container {
-            float:left;
-            width:20%;
-            margin-right:5px;
-          }
-          #slider-container > div {
-              width:95%;
-              float:right;
-          }
-
-          input[type=text]
-          {
-            width:40px;
-          }
-
-          #population-container {
-            float:right;
-            width:65%;
-            margin-left:5px;
-          }
-
-          #population-container > div {
-            margin-top:20pt;
-          }
+  </script>
 
 
-          #left
-              {
-                width: 400px;
-                float: left;
-                margin-left:5px;
+  <style>
+body {
+color: #fff;
+font: 600 12px/18px "Open Sans", "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", Sans-Serif;
+}
 
-              }
+.small{
+  font-size:8pt;
+  font-style:italic;
+}
 
-              #right
-              {
-                margin-left: 405px; /* Change this to whatever the width of your left column is*/
+#header{
 
-              }
+}
 
-              .clear
-              {
-                clear: both;
-              }
+#wrap{
+  width:100%;
+}
 
-              #meter{
-              }
+/* ROWS */
+.box-set,
+.box {
+  border-radius: 6px;
+}
+.box-set {
+  background: #eaeaed;
+  width:60%;
+  padding:4pt
+}
+.box {
+  background: #2db34a;
 
-            #canvas{
-              position:absolute;
-              margin-top: -30pt;
-              margin-left:31%;
-            }
-        </style>
+  padding:4pt;
+  text-align: left;
+
+  margin:4pt
+}
 
 
+/*COLUMNS*/
+
+.boxcol-set,
+.boxcol {
+  border-radius: 6px;
+}
+.boxcol-set {
+  overflow: auto;
+  width:100%;
+  align:center
+}
+.boxcol {
+  background: blue;
+  float: left;
+  margin: 1.858736059%;
+  padding: 4pt;
+  text-align: left;
+  width: 42%;
+  overflow:hidden
+}
+
+#live {
+  background: blue;
+  float: left;
+  margin: 1.858736059%;
+  padding: 4pt;
+  text-align: left;
+  width: 92%;
+  overflow:hidden
+}
+
+/* knobs */
+.knobber {
+  float: left;
+  display: block;
+  height:90pt;
+  overflow:hidden
+
+}
+
+.knobber > div{
+  padding-left:4pt;
+  font-size:8pt
+}
+
+label{font-size:8pt}
+
+/* graphs */
+.member-container {
+  float: left;
+  margin:10pt
+}
+.member-container > div[id^="graph-"] {
+  width: 180px;
+  height: 150px;
+  background-color:blue
+}
+
+.member-container span.computing-message {
+  padding-left:5pt; color: red; display:none; font-size:8pt;
+  padding-bottom:10pt;
+}
+
+/* checkboxes and buttons*/
+#variation_box{
+  margin-top:-135pt;
+  margin-left:59pt
+}
+#buttons {
+  margin-left:10pt;
+}
+
+.button {
+   border-top: 1px solid #96d1f8;
+   background: #0000ff;
+   background: -webkit-gradient(linear, left top, left bottom, from(#2db34a), to(#0000ff));
+   background: -webkit-linear-gradient(top, #2db34a, #0000ff);
+   background: -moz-linear-gradient(top, #2db34a, #0000ff);
+   background: -ms-linear-gradient(top, #2db34a, #0000ff);
+   background: -o-linear-gradient(top, #2db34a, #0000ff);
+   padding: 3.5px 7px;
+   -webkit-border-radius: 5px;
+   -moz-border-radius: 5px;
+   border-radius: 5px;
+   -webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
+   -moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
+   box-shadow: rgba(0,0,0,1) 0 1px 0;
+   text-shadow: rgba(0,0,0,.4) 0 1px 0;
+   color: white;
+   font-size: 11px;
+   font-family: Georgia, serif;
+   text-decoration: none;
+   vertical-align: middle;
+   }
+.button:hover {
+   border-top-color: #28597a;
+   background: #28597a;
+   color: #ccc;
+   }
+.button:active {
+   border-top-color: #1b435e;
+   background: #1b435e;
+   }
+
+h2{line-height:4pt; padding-left:25pt;color:white; font-style:italic;font-size:12pt}
+h3{line-height:4pt}
+h4{line-height:4pt;}
 
 
-    </head>
-    <body>
+.basic_row{padding:10pt;height:30pt}
 
+.wraper{
+  height:100%
+}
+.wraper, .meter{
+  height:50pt
+}
 
-      <!-- volume meter <script src="meter.js"></script> -->
-      <!--
-      <input type="button" id="guitar" value="Play Live Guitar" />
-      <script>
-        $(document).ready(function(){
-          $("#guitar").click(function(){
-            live = true;
-          });
-        });
-      </script>
-    -->
+#canvas{
+  float:left;
+  padding-top:17pt
+}
+  </style>
 
-<canvas id="canvas" width="1000" height="325" style="display: block;"></canvas>
+</head>
+<body>
+  <div id="wrap">
 
-<div class="outer-container">
-  <div id="container">
-      <div id="left">
-        <h1>Amp Mod</h1>
-        <!-- GENERATION MESSAGE -->
-        <h2></h2>
-
-      <input type="button" id="back" value="<-- Back" />
-      <input type="button" class="evolve" value="Evolve -->" />
-  <hr>
-      </div>
-      <div id="right">
-
-        <canvas id="meter" width="60" height="130" style="display: block;"></canvas>
-      </div>
-      <div class="clear"></div>
-  </div>
-
-        <div style="background-color:#FFFFFF" id="slider-container">
-
-            <div>
-              <p><label for="amount-effect">EFFECT:</label></p>
-              <input type="text" id="amount-effect" readonly style="border:0; color:#B1B534; font-weight:bold; ">
-              <div id="slider-effect" ></div>
+  <div class="box-set">
+    <div class="box">
+      <div id="header">
+        <div class="boxcol-set">
+          <div class="wraper">
+            <div class="boxcol">
+                <div >
+                  <h1>Wallyfier</h1>
+                  <input type="button" class="button" id="mute" value="mute" />
+<!--                  <input type="button" class="button" id="mute2" value="mute wet" />
+                  <input type="button" class="button" id="mute3" value="mute dry" /> -->
+                </div>
+              </div>
+            <div class="boxcol">
+              <div class="meter">
+              <!--  <canvas id="meter" width="0" height="0" style="display: block;"></canvas> -->
+                <canvas id="canvas" width="400" height="50" style="display: block;"></canvas>
+              </div>
             </div>
+          </div> <!-- wrap -->
+        </div>
+      </div> <!-- header-->
+    </div> <!-- box -->
 
-
-              <div>
-                <p><label for="amount-distortion">DISTORTION:</label></p>
-                <input type="text" id="amount-distortion" readonly style="border:0; color:#B1B534; font-weight:bold;">
-                <div id="slider-distortion" ></div>
+    <div class="box">
+      <div class="boxcol-set">
+        <div class="boxcol">
+          <h3>Upload Audio File</h3>
+            <div class="boxcol-set" STYLE="background: #000000;">
+              <div class="boxcol" id="live" >
+                <div id="fileuploader">Upload</div>
               </div>
 
-          <div>
-              <p>
-              <label for="amount-pMutateAddConnection">pMutateAddConnection:</label>
-            </p>
-              <input type="text" id="amount-pMutateAddConnection" readonly style="border:0; color:#B1B534; font-weight:bold;">
-            <div id="slider-pMutateAddConnection"></div>
+            </div>
           </div>
 
-              <div><p>
-              <label for="amount-pMutateAddNode">pMutateAddNode:</label>
-            </p>
-              <input type="text" id="amount-pMutateAddNode" readonly style="border:0; color:#B1B534; font-weight:bold;">
-            <div id="slider-pMutateAddNode"></div>
-          </div>
+          <div class="boxcol">
+            <h3>Play live</h3>
+              <div class="boxcol-set" STYLE="background: #000000;">
+                <div class="boxcol" id="live"  STYLE="height: 50pt;">
+                      <label id="reverse_label"><input type="checkbox" name="liveinput" id="liveinput"/> Use Live Audio Input</label>
+                      <p class="small">(If no USB connection is available, the microphone is used! )</p>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
 
-              <div>
 
-                <p><label for="amount-initialMutationCount">initialMutationCount:</label></p>
-              <input type="text" id="amount-initialMutationCount" readonly style="border:0; color:#B1B534; font-weight:bold;">
-            <div id="slider-initialMutationCount"></div>
-          </div>
+    <div class="box">
+      <h2></h2>
+    </div>
 
-              <div>
-                <p><label for="amount-postMutationCount">postXOMutationCount:</label></p>
-              <input type="text" id="amount-postMutationCount" readonly style="border:0; color:#B1B534; font-weight:bold;">
-            <div id="slider-postMutationCount"></div>
-          </div>
+    <div class="box">
+      <div class="boxcol-set" >
 
-          <div>
-                <p><label for="amount-ftSize">Fourier transform table size:</label></p>
-              <input type="text" id="amount-ftSize" readonly style="border:0; color:#B1B534; font-weight:bold;">
-            <div id="slider-ftSize"></div>
-          </div>
+        <div class="boxcol">
+          <h3>Compressor</h3>
+          <div class="boxcol-set" STYLE="background: #000000;">
+            <div class="boxcol">
+              <div class="knobber">
+                <p><label for="amount-attack">Attack:</label></p>
+                <input type="text" id="attack" value="0.25" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+              <div class="knobber">
+                <p><label for="amount-ratio">ratio:</label></p>
+                <input type="text" id="ratio" value="8" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+            </div> <!-- boxcol -->
 
-              <div>
-                <p><label for="amount-repetition">Repetition count:</label></p>
-                <input type="text" id="amount-repetition" readonly style="border:0; color:#B1B534; font-weight:bold;">
-                <span style="white-space:nowrap;">
-                    <input type="checkbox" name="variation" id="variation" /><label for="variation">with variation</label>
-                </span>
-              <div id="slider-repetition"></div>
+            <div class="boxcol">
+              <div class="knobber">
+                <p><label for="amount-release">Release:</label></p>
+                <input type="text" id="release" value="0.5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+              <div class="knobber">
+                <p><label for="amount-threshold">Threshold:</label></p>
+                <input type="text" id="threshold" value="-30" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+            </div> <!-- boxcol-->
 
+          </div> <!-- boxcol-set-->
+        </div> <!-- box-col compressor -->
+
+
+            <div class="boxcol">
+              <h3>Master Gain</h3>
+              <div class="boxcol-set" STYLE="background: #000000;">
+                <div class="boxcol">
+                  <div class="knobber">
+                    <p><label for="amount-master">Gain:</label></p>
+                    <input type="text" id="mastergain" value="45" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  </div>
+                  <div class="knobber">
+                    <p><label for="amount-effect"> <-Wet-Dry-> </label></p>
+                    <input type="text" id="mix" value="5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round data-cursor=true>
+                  </div>
+                </div>
+                <div class="boxcol">
+
+
+                  <div class="knobber">
+                    <p><label for="clipping-amount">Clip-level:</label></p>
+                    <input type="text" id="clippingAmount" value="0.3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  </div>
+                  <div class="knobber">
+                    <p><label for="source-amount">Dry:</label></p>
+                    <input type="text" id="sourceamount" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  </div>
+                </div>
+
+
+              </div>
             </div>
 
+      </div> <!-- boxcol-set -->
+    </div> <!-- box (row) -->
+
+    <div class="box">
+      <div class="boxcol-set">
+        <div class="boxcol">
+          <h3>CPPN</h3>
+            <div class="boxcol-set"  STYLE="background: #000000;">
+              <div class="boxcol">
+                <h4>Nodes</h4>
+                <div class="knobber">
+                  <p><label for="amount-pMutateAddConnection">Connections:</label></p>
+                  <input type="text" id="pMutateAddConnection" value="20" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-pMutateAddNode">Nodes:</label></p>
+                  <input type="text" id="pMutateAddNode" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+
+              </div>
+              <div class="boxcol">
+                <h4> Mutations </h4>
+                <div class="knobber">
+                  <p><label for="amount-initialMutationCount">Input :</label></p>
+                  <input type="text" id="initialMutationCount" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-postMutationCount">Output :</label></p>
+                  <input type="text" id="postMutationCount" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+              </div> <!-- boxcol -->
+              <div class="boxcol">
+                <div class="knobber">
+                  <p><label for="amount-cppn">Gain :</label></p>
+                  <input type="text" id="cppnamount" value="7" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+              </div> <!-- boxcol -->
+
+              <div class="boxcol">
+                <div class="knobber">
+                  <p><label for="freq-lowcut">Freq :</label></p>
+                  <input type="text" id="lowcut" value="1000" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-lowcut">Gain :</label></p>
+                  <input type="text" id="lowcutgain" value="5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+
+              </div> <!-- boxcol -->
+
+
+
+            </div> <!-- boxcol-set-->
+      </div> <!-- boxcol -->
+
+      <div class="boxcol">
+        <h3>Evolve</h3>
+
+          <div class="boxcol-set" STYLE="background: #000000">
+            <div class="boxcol">
+              <div class="knobber">
+
+                <p><label for="evolve-amount"># generations to evolve:</label></p>
+                <input type="text" id="evolveAmount" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+
+              <div class="knobber">
+                <input type="button" class="button" id="back" value="<-- Back " />
+                <input type="button" class="button" id="evolve" value="Evolve -->" />
+              </div>
+            </div>
+
+            <div class ="boxcol">
+                <h3>Modulation type</h3>
+                <div >
+                  <label id="squareroot_label"><input type="checkbox" name="square_root" id="squareroot"/>Squareroot</label>
+                </div>
+                <div >
+                  <label id="addition_label"><input type="checkbox" name="addition" id="addition"/>Addition</label>
+                </div>
+                <div >
+                  <label id="amplitude_label"><input type="checkbox" name="amplitude" id="amplitude" checked/>Amplitude</label>
+                </div>
+
+            </div>
+            <div class="boxcol">
+              <div class="knobber">
+                <div id="rep">
+                  <p><label for="amount-repetition">( Repetition count: )</label></p>
+                  <input type="text" id="repetition" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+
+                </div>
+                <div id="variation_box">
+                  <label id="variation_label"><input type="checkbox" name="variation" id="variation" /> variation</label>
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- boxcol-set-->
+      </div> <!-- col -->
+
+    </div> <!-- col-set-->
+  </div> <!-- box (row) -->
+
+
+  <div class="box">
+    <div class="boxcol-set" >
+
+      <div class="boxcol">
+        <h3>Reverb</h3>
+        <div class="boxcol-set" STYLE="background: #000000;">
+          <div class="boxcol">
+            <div class="knobber">
+              <p><label for="amount-duration">Duration:</label></p>
+              <input type="text" id="duration" value="1.0" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+            </div>
+            <div class="knobber">
+                <p><label for="amount-decay">Decay:</label></p>
+                <input type="text" id="decay" value="1.0" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+            </div>
+          </div>
+          <div class="boxcol">
+
+            <div class="knobber">
+              <div class="rep">
+                <p><label for="amount-reverbgain">Gain:</label></p>
+                <input type="text" id="reverbgain" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
+              <div id="variation_box">
+                <label id="reverse_label"><input type="checkbox" name="reverse" id="reverse"/> Reverse</label>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+      <div class="boxcol">
+        <h3>Distortion</h3>
+        <div class="boxcol-set" STYLE="background: #000000;">
+          <div class="boxcol">
+            <div class="knobber">
+              <div class="knobber">
+                <p><label for="amount-distortion">Distortion:</label></p>
+                <input type="text" id="distortion" value="50" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
 
-  <div id="population-container">
+            </div>
+          </div>
+          <div class="boxcol">
+            <div class="knobber">
+              <div class="knobber">
+                <p><label for="amount-distortiongain">Gain:</label></p>
+                <input type="text" id="distortiongain" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+              </div>
 
-        <br style="clear:both;" /><br />
-
-        <span>
-          Click on waveforms to activate them for playing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    <div class="box">
+      <span>
+          Click on a box to activate it's network for playing.
         </span>
-
+        <span>
+          Use checkboxes to select multiple boxes as parents for the next evolution.
+          Otherwise the currently selected box will be used as a single parent.
+        </span>
         <p />
-
 
           <div id="member-container-0" class="member-container">
             <div id="graph-0"></div>
@@ -291,39 +546,36 @@
             <input type="checkbox" name="member-9" id="member-9" />
             <label for="member-9">Individual 9</label><span class="computing-message">Computing</span>
           </div>
-
           <br clear="both"/>
           <br />
 
-          <input type="button" class="evolve" value="Evolve -->" />
-          <span>
-            Use the checkboxes to select multiple parents.
-            Otherwise the currently active waveform (yellow) will be selected as the one parent.
-          </span>
-
-          <br /><br />
-
-  <!--
-          <input type="checkbox" name="envelope" id="envelope" checked />
-          <label for="envelope">Use envelope (ADSR)</label>
-  -->
-          <br />
-
-          <input type="button" id="recordSample" value="Record" />
-          <input type="button" id="stopRecordSample" value="Stop Record" />
 
 
-          <br /><br />
+    </div> <!-- box -->
 
-          <p>Selected CPPN:</p>
-          <pre id="printCPPN"></pre>
+    <div class="box">
+      <div class="boxcol-set">
+        <div class="boxcol">
+          <div class="basic_row">
+            <div>
+              <input type="button" id="recordSample" value="Record" />
+            <input type="button" id="stopRecordSample" value="Stop Recording" />
+            </div>
+          </div>
+        </div>
+        <div class="boxcol">
+          <div class="basic_row">
+            <input type="button" id="printcppn" value="Print Selected CPPN" />
+          </div>
+        </div>
+      </div> <!-- boxcol-set -->
+    </div> <!-- box -->
+    <div class="box">
+            <pre id="printCPPN"></pre>
+
     </div>
-
-</div>
-
-
-        <p /><p /><p />
-        <script src="main2.js"></script>
-
-    </body>
+  </div> <!-- box-set -->
+</div> <!-- wrap -->
+            <script src="main2.js"></script>
+</body>
 </html>

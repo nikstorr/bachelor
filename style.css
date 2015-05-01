@@ -1,0 +1,125 @@
+body{
+  width:90%;
+  background-color:#FFFFF;
+  margin-top:-30px;
+}
+
+h1 {
+    font-family: 'Lobster', Georgia, Times, serif;
+    font-size: 70px;
+
+}
+
+p {
+    font-family: 'Cabin', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+
+}
+
+#knobs{
+  border-radius: 25px;
+  border: 2px solid #8AC007;
+  width:25%;
+  height:20%
+}
+
+.knobber {
+  padding: 8pt;
+  float: left
+}
+
+.knobber > div[id="rep"]{
+  float:left;
+  width:100pt;
+  overflow:hidden;
+}
+
+#variations {
+  float:left;
+  margin:20pt
+}
+
+#variation  {
+  padding:4px;
+  margin-top:50pt
+}
+
+#outer-container > div{
+  width:950px;
+  display: inline-block;
+}
+
+
+.member-container {
+  float: left;
+}
+.member-container > div[id^="graph-"] {
+  width: 180px;
+  height: 150px;
+}
+
+.member-container span.computing-message {
+  padding-left:5pt; color: red; display:none; font-size:8pt;;
+}
+
+
+#slider-container {
+  float:left;
+  width:80%;
+  margin-right:5px;
+}
+#slider-container > div {
+    width:95%;
+    float:right;
+}
+
+#buttons{
+  float:left;
+  width:100%;
+  padding:10pt
+
+}
+
+
+input[type=text]
+{
+  width:40px;
+}
+
+#population-container {
+  float:left;
+  width:65%;
+  margin-left:5px;
+}
+
+#population-container > div {
+  margin-top:20pt;
+}
+
+
+#left
+    {
+      width: 400px;
+      float: left;
+      margin-left:5px;
+
+    }
+
+    #right
+    {
+      margin-left: 405px;
+
+    }
+
+    .clear
+    {
+      clear: both;
+    }
+
+    #meter{
+    }
+
+  #canvas{
+    margin-top:-80pt;
+    margin-left:14pt
+  }

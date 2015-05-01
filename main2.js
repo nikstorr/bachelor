@@ -4,67 +4,105 @@ var cppnjs = require('optimuslime~cppnjs@master');
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContext();
 
+
 //////////////////////////////////////////////////////
 //guitar
-var live = true; // no live guitar input, use sampled data instead
+var inputType = "sample";
 var audioData = null;
 var audioBuffer;
-var source, source2; // sound source
-var request;
-var processor;
-var buff = audioContext.createBuffer(2, audioContext.sampleRate *2.0, audioContext.sampleRate);
-var effectGain = 50;      // Initial amount of effect
-var distortionGain = 100; // Initial amount of distortion
-var cleanSoundAmount = 2;
-var channels = 2;
+var sourceBuffer;
+var source;    // sound sources
+var dryAmount = 0.5; // < dry - wet > audio
+// live input stream buffer
+var streamer;
 
-var analyser = audioContext.createAnalyser();
+var isPlaying = false;
 
-// A bit of colors
+var biquadFilter = audioContext.createBiquadFilter();
+biquadFilter.type = "lowshelf";
+biquadFilter.frequency.value = 1000;
+biquadFilter.gain.value = 25;
+
+
+var sourceGain = audioContext.createGain();
+sourceGain.gain.value = 0.7;
+
+// master gains
+var recorderGain = audioContext.createGain();
+recorderGain.gain.value = 1.0;
+recorderGain.connect(audioContext.destination);
+
+var masterGain = audioContext.createGain();
+masterGain.gain.value = 0.45;
+
+
+//var request; //
+var processor = audioContext.createScriptProcessor(0, 1, 1);
+var procGain = audioContext.createGain();
+procGain.gain.value = 0.5;
+
+//var buff = audioContext.createBuffer(2, audioContext.sampleRate *2.0, audioContext.sampleRate);
+var effectGain = 0.5;      // Initial amount of CPPN effect
+//var cleanSoundAmount = 2; // Hmm
+
+
+// distortion
 var distortion = audioContext.createWaveShaper();
-var compressor = audioContext.createDynamicsCompressor();
-var convolver = audioContext.createConvolver();
+var distortionGain = 100; // Initial amount of distortion
+distortion.curve = makeDistortionCurve(distortionGain);
+distortion.oversample = '4x';
+var distGain = audioContext.createGain();
+distGain.gain.value = 0.2;
 
-var debug = false;
+// compressor
+var compressor = audioContext.createDynamicsCompressor();
+var compGain = audioContext.createGain();
+compGain.gain.value = 0.7;
+comp(); // initialise values
+
+// reverb
+var convolver = audioContext.createConvolver();
+var convolverGain = audioContext.createGain();
+convolverGain.gain.value = 1.0;
 
 //////////////////////////////////////////////////////
-// meter
-var audioBuffer;
-var splitter;
-var analyser2;
-var javascriptNode;
+// Visuals
+
+// Analyser: time <-> frequency domain
+var analyser = audioContext.createAnalyser();
+analyser.smoothingTimeConstant = 0.3;
+analyser.fftSize = 256;
+
+////////////////////////////////////
+// frequency spectrum
 
 // get the context from the canvas to draw on
-var ctx = $("#meter").get()[0].getContext("2d");
-ctx.rotate(9*Math.PI/180);
+//var ctx = $("#meter").get()[0].getContext("2d");
+// get the context from the canvas to draw on
+var ctx2 = $("#canvas").get()[0].getContext("2d");
 
 // create a gradient for the fill. Note the strange
 // offset, since the gradient is calculated based on
 // the canvas, not the specific element we draw
-var gradient = ctx.createLinearGradient(0,0,0,130);
+var gradient = ctx2.createLinearGradient(0,0,0,40);
 gradient.addColorStop(1,'#000000');
 gradient.addColorStop(0.75,'#ff0000');
 gradient.addColorStop(0.25,'#ffff00');
 gradient.addColorStop(0,'#ffffff');
 
-javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
-// connect to destination, else it isn't called
-javascriptNode.connect(audioContext.destination);
 
-analyser.smoothingTimeConstant = 0.3;
-analyser.fftSize = 1024;
 
-analyser2 = audioContext.createAnalyser();
-analyser2.smoothingTimeConstant = 0.0;
-analyser2.fftSize = 1024;
+//////////////////////////////////////
+// # generations to evolve per click
+var breedGenerations = 1;
+// multiply ouput samples by this factor to reduce clipping
+var clipFactor = 0.6;
+// types of modulation
+var amplitude = true;
+var addition = false;
+var squareroot = false;
 
-splitter = audioContext.createChannelSplitter();
-
-////////////////////////////////////
-// frewquency spectrum
-// get the context from the canvas to draw on
-var ctx2 = $("#canvas").get()[0].getContext("2d");
-
+// var multiplication = 0; // no
 
 
 ///////////////////////////////////////////////////////
@@ -231,7 +269,7 @@ var currentIndividualPeriodicWaves = undefined; // to be an object literal
 
 createFirstPopulation();
 displayCurrentGeneration();
-renderPopulation( currentPopulationIndex );
+// renderPopulation( currentPopulationIndex );
 
 // let's decrease the mutation count after creating the first population
 iecOptions.initialMutationCount = 1;  // 1
@@ -254,7 +292,7 @@ function createFirstPopulation() {
 }
 
 var inputPeriods = 10;
-var variationOnPeriods = false;
+var variationOnPeriods = true;
 
 /// <summary>
 /// Render waveforms.
@@ -298,119 +336,137 @@ function renderPopulation( populationIndex ) {
 
     currentPopulationMemberOutputs.push( oneMemberOutputs );
 
+/*
     new Dygraph(
       document.getElementById("graph-"+i),
       oneMemberOutputs,
       {
-        labels: ["time (frequency?) domain", "modulation", "carrier" ],
+        labels: ["time (frequency?) domain", "modulation" , "carrier"],
         valueRange: [-1, 1]
       }
     );
+*/
+
+
+
   }
 }
 
-var modulationWave = [];
+// var modulationWave = [];
 var carrierWave = [];
 
 function getPeriodicWavesForMemberInCurrentPopulation( memberIndex ) {
   //
   var cppnOutputs = currentPopulationMemberOutputs[ memberIndex ];
 
-  modulationWave = [];
+//  modulationWave = [];
   carrierWave = [];
 
   /* */
   cppnOutputs.forEach(function(oneOutputSet, index, array){
-    modulationWave.push( oneOutputSet[1] );
+    //modulationWave.push( oneOutputSet[1] );
     carrierWave.push( oneOutputSet[2] );
   });
 
   // Fourier transform
-  var ftModulator = new DFT( modulationWave.length );
-  ftModulator.forward( modulationWave );
+  //var ftModulator = new DFT( modulationWave.length );
+  //ftModulator.forward( modulationWave );
   var ftCarrier = new DFT( carrierWave.length );
   ftCarrier.forward( carrierWave );
-
+/*
   var modulatorWaveTable = audioContext.createPeriodicWave(
     ftModulator.real, ftModulator.imag
   );
-
+*/
   var carrierWaveTable = audioContext.createPeriodicWave(
     ftCarrier.real, ftCarrier.imag
   );
 
   return {
-      'modulator': modulatorWaveTable,
+  //    'modulator': modulatorWaveTable,
       'carrier': carrierWaveTable
   };
 }
 
 function evolveNextGeneration() {
 
-  // let's get all user selected individuals in the UI, to use as parents
-  var parentIndexes = [];
-  $( "input[name^='member-']:checked" ).each(function(){
-    parentIndexes.push( parseInt( $(this).attr("name").substring(7) ) );
-  });
-  // and if there are no individuals selected in the UI
-  if( parentIndexes.length < 1 ) {
-    // let's check if some waveform is seleced for playing
-    // and then use that as a parent
-    if( currentMemberIndex !== undefined ) {
-      parentIndexes.push( currentMemberIndex );
-    } else {
-      alert("At least one parent needs to be selected for the next generation.");
-      return;
+  // mute while processing
+//  masterGain.disconnect(audioContext.destination);
+
+  //for(var i = 0; i < breedGenerations; i++){
+    // let's get all user selected individuals in the UI, to use as parents
+    var parentIndexes = [];
+    $( "input[name^='member-']:checked" ).each(function(){
+      parentIndexes.push( parseInt( $(this).attr("name").substring(7) ) );
+    });
+    // and if there are no individuals selected in the UI
+    if( parentIndexes.length < 1 ) {
+      console.log("never get here");
+      // let's check if some waveform is seleced for playing
+      // and then use that as a parent
+      if( currentMemberIndex !== undefined ) {
+        parentIndexes.push( currentMemberIndex );
+      } else {
+        alert("At least one parent needs to be selected for the next generation.");
+        return;
+      }
     }
-  }
+    var currentPopulation = populations[currentPopulationIndex];
+    var parents = [];
+    /* gather selected individuals' children for breeding the next generation */
+    $.each( parentIndexes, function( oneParentIndex, value ) {
+      parents.push( currentPopulation[oneParentIndex].offspring );
+    });
 
-  var currentPopulation = populations[currentPopulationIndex];
-  var parents = [];
-  /* gather selected individuals' children for breeding the next generation */
-  $.each( parentIndexes, function( oneParentIndex, value ) {
-    parents.push( currentPopulation[oneParentIndex].offspring );
-  });
+    // parents of the new generation
+    // console.log( parents );
 
-  // parents of the new generation
-  console.log( parents );
+    // let's create a new population from the chosen parents
+    var newPopulation = [];
+    for( var i=0; i < populationSize; i++ ) {
+      var onePopulationMember = iecGenerator.createNextGenome( parents );
+      newPopulation.push( onePopulationMember );
+    }
+    // increase the # generations
+    currentPopulationIndex++;
+    populations.push( newPopulation );
 
-  // let's create a new population from the chosen parents
-  var newPopulation = [];
-  for( var i=0; i < populationSize; i++ ) {
-    var onePopulationMember = iecGenerator.createNextGenome( parents );
-    newPopulation.push( onePopulationMember );
-  }
-  // increase the # generations
-  currentPopulationIndex++;
-  populations.push( newPopulation );
 
-  /* prints 'generation1' or 'generation2' etc.*/
-  displayCurrentGeneration();
+  // prints 'generation1' or 'generation2' etc.
+    displayCurrentGeneration();
+  //}
+
   renderPopulation( currentPopulationIndex );
 
-  /* de-select checkboxes*/
+/*
+  // de-select checkboxes
   $( "input[name^='member-']" ).each( function(){
     $(this).attr( 'checked', false );
   });
-  /* reset background color*/
+  // reset background color
   $( ".member-container" ).each( function(){
-    $(this).find("div:first").css( {"background-color": "#fff"} );
+    $(this).find("div:first").css( {"background-color": "#2db34a"} );
   });
+*/
+  // de-select waveform
+  // currentIndividualPeriodicWaves = undefined;
 
-  /* de-select waveform */
-  currentIndividualPeriodicWaves = undefined;
+  // $("#back").show();
 
-  $("#back").show();
+  // re-connect source after processing
+//  masterGain.connect(audioContext.destination);
 }
 
 function backOneGeneration() {
   if( currentPopulationIndex > 0 ) {
 
-    populations.pop();
-    currentPopulationIndex--;
+    for(var i = 0; i < breedGenerations; i++){
+      populations.pop();
+      currentPopulationIndex--;
+    }
 
     $( ".member-container" ).each( function(){
-      $(this).find("div:first").css( {"background-color": "#fff"} );
+      $(this).find("div:first").css( {"background-color": "blue"} );
     });
 
     displayCurrentGeneration();
@@ -432,7 +488,7 @@ function getCurrentCPPNAsString() {
 }
 
 function printCurrentCPPNtoString() {
-  $("#printCPPN").text( getCurrentCPPNAsString() );
+   $("#printCPPN").text( getCurrentCPPNAsString() );
 }
 
 function saveCurrentCPPNToFile( filename ) {
@@ -461,15 +517,42 @@ var currentMemberIndex = undefined;
 $(function() {
   var selectedMembersIndexes = [];
 
-  $(".evolve").click( function() {
-    evolveNextGeneration();
+  $("#evolve").click( function() {
+    var parentIndexes = [];
+    $( "input[name^='member-']:checked" ).each(function(){
+      parentIndexes.push( parseInt( $(this).attr("name").substring(7) ) );
+    });
+    // and if there are no individuals selected in the UI
+    if( parentIndexes.length < 1 ) {
+      alert("please, select one or more parents before evolving");
+    }else{
+      masterGain.disconnect();
+      for(var i = 0; i < breedGenerations; i++){
+          evolveNextGeneration();
+      }
+      masterGain.connect(audioContext.destination);
+    }
   });
+
+  $("#evolveAmount").knob(
+    {
+      'min':1,
+      'max':100,
+      'step':1,
+    	'change': function(event){
+        //console.log("evolve");
+        breedGenerations = event; // $('#evolveAmount').slider("option", "value");
+
+      }
+    }
+  );
+
 
   $("#back").click( function() {
     backOneGeneration();
   });
 
-  $("#back").hide();
+  // $("#back").hide();
 
   /* when a 'sound' is selected ...  */
   $(".member-container div").click( function() {
@@ -478,11 +561,11 @@ $(function() {
       /* ... we de-select all other 'sounds'*/
       selectedMembersIndexes.forEach(function(memberIdx, index, array){
         var $oneMemberContainer = $("#member-container-"+memberIdx);
-        $oneMemberContainer.find("div:first").css( {"background-color": "#FFF"} );
-/*
+        $oneMemberContainer.find("div:first").css( {"background-color": "blue"} );
+
         // let's deselect all members other than the one clicked for now
         $oneMemberContainer.find("#member-"+memberIdx).attr( "checked", false );
-*/
+
       });
 
       selectedMembersIndexes = [];
@@ -501,46 +584,48 @@ $(function() {
         /* ... hide its span again*/
         $this.parent().find("span.computing-message").hide();
         /* ... highlight background hideously yellow'ish */
-        $this.css( {"background-color": "#CCC"} );
+        $this.css( {"background-color": "yellow"} );
         /* ... play sound */
         playSelectedWaveformsForOneQuarterNoteC3();
         /* ... print child node CPPN mumbo-jumbo*/
-        printCurrentCPPNtoString();
+        // printCurrentCPPNtoString();
 
       });
   });
 
   /* ... */
   $("#recordSample").click( function(){
-    if( currentIndividualPeriodicWaves ) {
-      playSelectedWaveformsForOneQuarterNoteC3( true );
-    } else {
-      alert("Please select a waveform first");
-    }
+      if( currentIndividualPeriodicWaves ) {
+        rec.record();
+        //playSelectedWaveformsForOneQuarterNoteC3(  );
+      } else {
+        alert("Please select a waveform first");
+        return;
+      }
+
   });
 
   $("#stopRecordSample").click( function(){
-    if( currentIndividualPeriodicWaves ) {
+    //if( currentIndividualPeriodicWaves ) {
       stopRecordingAndSave();
-    } else {
-      alert("Please select a waveform first");
-    }
+    //} else {
+    //  alert("Please select a waveform first");
+    //}
   });
 
+  var oldGain = masterGain.gain.value;
+  $("#mute").click( function(){
 
-
-  /*
-  shouldModulate = $("#modulate")[0].checked;
-  $("#modulate").click( function() {
-    shouldModulate = $(this)[0].checked;
+      if(  $("#mute").attr("value") == "mute" ){
+        oldGain = masterGain.gain.value;
+        masterGain.gain.value = 0.0;
+        $("#mute").val("Un-mute");
+      }else{
+        masterGain.gain.value = oldGain;
+        $("#mute").val("mute");
+      }
   });
 
-  useEnvelope = $("#envelope")[0].checked;
-  $("#envelope").click( function() {
-    useEnvelope = $(this)[0].checked;
-  });
-
-*/
 
   variationOnPeriods = $("#variation")[0].checked;
   $("#variation").click( function(){
@@ -551,7 +636,7 @@ $(function() {
       currentIndividualPeriodicWaves =
         getPeriodicWavesForMemberInCurrentPopulation( currentMemberIndex );
 
-      playSelectedWaveformsForOneQuarterNoteC3();
+      // playSelectedWaveformsForOneQuarterNoteC3();
     }
   });
 
@@ -565,36 +650,284 @@ $(function() {
     value: 0
   };
 
-  $( "#slider-effect").slider(
-    $.extend({
-      slide: updateEffectAmount,
-      change: updateEffectAmount
-    }, commonPercentageSliderOptions )
+  // master gain
+  $("#mastergain").knob(
+    {
+      'min':0,
+      'max':100,
+      'step':1,
+      'change': function(event){
+        var volume = event;
+        var fraction = parseInt(volume) / parseInt(100);
+        // Let's use an x*x curve (x-squared) since simple linear (x) does not
+        // sound as good.
+        masterGain.gain.value = (fraction*fraction);
+        //console.log(fraction*fraction);
+      }
+    }
   );
 
-  $( "#slider-distortion").slider(
-    $.extend({
-      slide: updateDistortionAmount,
-      change: updateDistortionAmount
-    }, commonPercentageSliderOptions )
+
+  // Mix !!!
+  $("#mix").knob(
+    {
+      'min':0,
+      'max':10,
+      'step':0.1,
+    	'change': function(event){
+
+        //var fraction = parseInt(event) / parseInt(100);
+        fraction = parseInt(event) / parseInt(10);
+
+
+        // dryAmount is used in the scriptProcessor to decide the
+        // multiplicationfactor when modulating
+
+        // dryAmount = (fraction*fraction)+0.1 ;
+        dryAmount = Math.cos((1.0 - fraction) * 0.44 * Math.PI);
+
+        /* Use an equal-power crossfading curve:
+        var gain1 = Math.cos(fraction * 0.5*Math.PI);
+        var gain2 = Math.cos((1.0 - fraction) * 0.5*Math.PI);
+        masterWet.gain.value = gain1;
+        masterDry.gain.value = gain2;
+        */
+
+        // var newVolume = fraction*fraction;
+        // dry gain
+        // sourceGain.gain.value = newVolume;
+        // wet gain
+        // procGain.gain.value = parseInt(1)- newVolume;
+
+//        console.log("dryAmount: "+ dryAmount);
+        // console.log("dry: " + sourceGain.gain.value);
+        // console.log("wet: " + procGain.gain.value);
+      }
+    }
+  );
+
+// clean signal amount
+  $("#sourceamount").knob(
+    {
+      'min':0,
+      'max':10,
+      'step':1,
+    	'change': function(event){
+        sourceGain.gain.value = event/10;
+      }
+    }
+  );
+
+  $("#distortion").knob(
+    {
+      'min':0,
+      'max':500,
+      'step':20,
+    	'change': function(event){
+        distortionGain = event;
+        distortion.curve = makeDistortionCurve(distortionGain);
+      }
+    }
+  );
+
+  $("#distortiongain").knob(
+    {
+      'min':0,
+      'max':50,
+      'step':1,
+    	'change': function(event){
+        distGain.gain.value = event/10;
+
+      }
+    }
   );
 
 
-  $( "#slider-pMutateAddConnection").slider(
-    $.extend({
-      slide: updateMutateAddConnectionP,
-      change: updateMutateAddConnectionP
-    }, commonPercentageSliderOptions )
-  );
-  $( "#slider-pMutateAddNode").slider(
-    $.extend({
-      slide: updateMutateAddNodeP,
-      change: updateMutateAddNodeP
-    }, commonPercentageSliderOptions )
-  );
-  $( "#slider-pMutateAddConnection" ).slider( "value", np.pMutateAddConnection * 100 );
-  $( "#slider-pMutateAddNode" ).slider( "value", np.pMutateAddNode * 100 );
 
+  $("#attack").knob(
+    {
+      'min':0,
+      'max':1,
+      'step':0.1,
+    	'change': function(event){
+        compressor.attack.value = event;
+      }
+    }
+  );
+
+  $("#release").knob(
+    {
+      'min':0,
+      'max':1,
+      'step':0.1,
+    	'change': function(event){
+        compressor.release.value = event;
+
+      }
+    }
+  );
+
+
+  $("#ratio").knob(
+    {
+      'min':0,
+      'max':12,
+      'step':4,
+    	'change': function(event){
+        compressor.ratio.value = event;
+      }
+    }
+  );
+
+
+  $("#threshold").knob(
+    {
+      'min':-50,
+      'max':50,
+      'step':5,
+    	'change': function(event){
+        compressor.threshold.value = event;
+
+      }
+    }
+  );
+
+////////////////////////////////////////////////
+// lowcut
+  $("#lowcut").knob(
+    {
+      'min':0,
+      'max':18000,
+      'step':100,
+      'change': function(event){
+        biquadFilter.frequency.value = event;
+      }
+    }
+  );
+
+
+  $("#lowcutgain").knob(
+    {
+      'min':1,
+      'max':50,
+      'step':1,
+      'change': function(event){
+        //var amnt = Math.abs(25 - event);
+        biquadFilter.gain.value = 50 - event;
+        //console.log(amnt);
+
+      }
+    }
+  );
+
+
+// trigger re-play sound
+  $('body').keyup(function(e){
+    if(e.keyCode == 32){
+       // user has pressed space
+       if( currentMemberIndex !== undefined ) {
+         currentIndividualPeriodicWaves =
+         getPeriodicWavesForMemberInCurrentPopulation( currentMemberIndex );
+         playSelectedWaveformsForOneQuarterNoteC3();
+        } else {
+          alert("Please, select a waveform first.");
+          return;
+        }
+    }
+  });
+
+
+////////////////////////////////////////////
+
+
+
+  $('#liveinput').change(function() {
+    live = $("#liveinput")[0].checked;
+    if(live){
+      inputType = "live";
+
+      if(isPlaying){
+        isPlaying = false;
+        stop();
+      }
+    }else{
+      stop();
+      inputType = "sample";
+      isPlaying = true;
+    }
+      console.log("live: " + live);
+  });
+
+////////////////////////////////////////
+// reverb
+  var reverse = $("#reverse")[0].checked;
+
+  $('#reverse').change(function() {
+    reverse = $("#reverse")[0].checked;
+    convolver.buffer = impulseResponse($( "#duration" ).val(), $( "#decay" ).val(),reverse);
+  });
+
+
+  $("#duration").knob(
+    {
+      'min':0.2,
+      'max':4.0,
+      'step':0.1,
+      'change': function(event){
+        convolver.buffer = impulseResponse(event,$( "#decay" ).val(),reverse);
+      }
+    }
+  );
+
+  $("#decay").knob(
+    {
+      'min':0.1,
+      'max':4.0,
+      'step':0.1,
+      'change': function(event){
+        convolver.buffer = impulseResponse($( "#duration" ).val(), event,reverse);
+      }
+    }
+  );
+  $("#reverbgain").knob(
+    {
+      'min':1,
+      'max':100,
+      'step':1,
+      'change': function(event){
+        convolverGain.gain.value = event;
+      }
+    }
+  );
+
+/////////////////////////////////////////
+
+
+  $("#pMutateAddConnection").knob(
+    {
+      'min':0,
+      'max':100,
+      'step':1,
+      'change': function(event){
+        np.pMutateAddConnection = event / 100;
+        iecGenerator.np.pMutateAddConnection = np.pMutateAddConnection;
+        // $( "#amount-pMutateAddConnection" ).val( np.pMutateAddConnection );
+      }
+    }
+  );
+
+  $("#pMutateAddNode").knob(
+    {
+      'min':0,
+      'max':100,
+      'step':1,
+      'change': function(event){
+        np.pMutateAddNode = event / 100;
+        iecGenerator.np.pMutateAddNode = np.pMutateAddNode;
+
+      }
+    }
+  );
 
   var commonMutationCountSliderOptions = {
     orientation: "horizontal",
@@ -602,153 +935,148 @@ $(function() {
     max: 5,
     value: 0
   };
-  $( "#slider-initialMutationCount" ).slider(
-    $.extend({
-      slide: updateInitialMutationCount,
-      change: updateInitialMutationCount
-    }, commonMutationCountSliderOptions )
+
+  $("#initialMutationCount").knob(
+    {
+      'min':0,
+      'max':5,
+      'step':1,
+      'change': function(event){
+        iecOptions.initialMutationCount = event;
+        iecGenerator.options.initialMutationCount = iecOptions.initialMutationCount;
+      }
+    }
   );
-  $( "#slider-postMutationCount" ).slider(
-    $.extend({
-      slide: updatePostMutationCount,
-      change: updatePostMutationCount
-    }, commonMutationCountSliderOptions )
+
+  $("#postMutationCount").knob(
+    {
+      'min':0,
+      'max':5,
+      'step':1,
+      'change': function(event){
+        iecOptions.postMutationCount = event;
+        iecGenerator.options.postMutationCount = iecOptions.postMutationCount;
+      }
+    }
   );
-  $( "#slider-initialMutationCount" ).slider( "value", iecOptions.initialMutationCount );
-  $( "#slider-postMutationCount" ).slider( "value", iecOptions.postMutationCount );
 
-  $( "#slider-ftSize" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 4096,
-    min: 32,
-    value: fourierTransformTableSize,
-    slide: updateFTsize,
-    change: updateFTsize
-  });
-  $( "#slider-ftSize" ).slider( "value", fourierTransformTableSize );
+// attempt at processor gain
+  $("#cppnamount").knob(
+    {
+      'min':0,
+      'max':100,
+      'step':1,
+      'change': function(event){
+        procGain.gain.value = event/100 ;
+      }
+    }
+  );
 
-  $( "#slider-repetition" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 50,
-    min: 1,
-    value: inputPeriods,
-    slide: renderNewRepetition,
-    change: renderNewRepetition
-  });
-  $( "#slider-repetition" ).slider( "value", inputPeriods );
 
-  $( "#slider-modulatorgain" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 600,
-    min: 1,
-    value: modulatorGain,
-    slide: updateModulatorGain,
-    change: updateModulatorGain
-  });
-  $( "#slider-modulatorgain" ).slider( "value", modulatorGain );
 
-  $( "#slider-modulatordetune" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 100,
-    min: -100,
-    value: modulatorDetune,
-    slide: updateModulatorDetune,
-    change: updateModulatorDetune
-  });
-  $( "#slider-modulatordetune" ).slider( "value", modulatorDetune );
+  $("#clippingAmount").knob(
+    {
+      'min':0,
+      'max':1,
+      'step':0.1,
+      'change': function(event){
+        clipFactor = 1-event;
+      }
+    }
+  );
 
-  $( "#slider-modulatorquarter" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 48,
-    min: -4,
-    value: modulatorQuarterOctaveOffset,
-    slide: updateModulatorQuarterOctaveOffset,
-    change: updateModulatorQuarterOctaveOffset
-  });
-  $( "#slider-modulatorquarter" ).slider( "value", modulatorQuarterOctaveOffset );
+  $("#repetition").knob(
+    {
+      'min':1,
+      'max':20,
+      'step':1,
+      'change': function(event){
+        inputPeriods = event;
+        if( populations[currentPopulationIndex].length > 0 ) {
+          renderPopulation( currentPopulationIndex );
+        }
+        if( currentMemberIndex !== undefined ) {
+          currentIndividualPeriodicWaves =
+            getPeriodicWavesForMemberInCurrentPopulation( currentMemberIndex );
+            if( inputPeriods != $( "#repetition" ).val() ) {
+              // playSelectedWaveformsForOneQuarterNoteC3();
+            }
+        }
+        $( "#repetition" ).val( inputPeriods );
 
-  $( "#slider-effect" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 100,
-    min: 0,
-    value: effectGain,
-    slide: updateEffectAmount,
-    change: updateEffectAmount
-  });
-  $( "#slider-effect" ).slider( "value", effectGain );
+      }
 
-  $( "#slider-distortion" ).slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 500,
-    min: 0,
-    value: distortionGain,
-    slide: updateDistortionAmount,
-    change: updateDistortionAmount
+    }
+  );
+
+  $('#squareroot').click(function() {
+      $('#amplitude')[0].checked = false;
+      $('#addition')[0].checked = false;
+
+      amplitude = false;
+      addition = false;
+      if(squareroot){
+        squareroot = false;
+      }else{
+        squareroot = true;
+      }
+
+    //  masterGain.gain.value = 1.0;
+
+      console.log("sqrt");
+
   });
-  $( "#slider-distortion" ).slider( "value", distortionGain );
+
+  $('#addition').click(function() {
+      $('#amplitude')[0].checked = false;
+      $('#squareroot')[0].checked = false;
+
+      squareroot = false;
+      amplitude = false;
+
+      if(addition){
+        addition = false;
+      }else{
+        addition = true;
+      }
+
+    //  masterGain.gain.value = 1.0;
+      console.log("addition");
+
+  });
+  $('#amplitude').click(function() {
+      $('#addition')[0].checked = false;
+      $('#squareroot')[0].checked = false;
+
+      squareroot = false;
+      addition = false;
+
+      if(amplitude){
+        amplitude = false;
+      }else{
+        amplitude = true;
+      }
+
+    //  masterGain.gain.value = 1.0;
+      console.log("amplitude");
+
+  });
+
+
+
+
+  $("#printcppn").click( function(){
+    printCurrentCPPNtoString();
+  });
 
 
 });
 
 
-///////////////////////////////////////////////////
-// sliders
 
-function updateEffectAmount(){
-  effectGain = $( "#slider-effect" ).slider( "value" );
-  $( "#amount-effect" ).val( effectGain );
-
-
-}
-function updateDistortionAmount(){
-  //console.log("updating distortion");
-  distortionGain = $( "#slider-distortion" ).slider( "value" );
-  $( "#amount-distortion" ).val( distortionGain );
-
-
-
-  distortion.curve = makeDistortionCurve(distortionGain);
-}
-
-
-
-
-function updateMutateAddConnectionP() {
-  np.pMutateAddConnection = $( "#slider-pMutateAddConnection" ).slider( "value" ) / 100;
-  iecGenerator.np.pMutateAddConnection = np.pMutateAddConnection;
-  $( "#amount-pMutateAddConnection" ).val( np.pMutateAddConnection );
-}
-function updateMutateAddNodeP() {
-  np.pMutateAddNode = $( "#slider-pMutateAddNode" ).slider( "value" ) / 100;
-  iecGenerator.np.pMutateAddNode = np.pMutateAddNode;
-  $( "#amount-pMutateAddNode" ).val( np.pMutateAddNode );
-}
-
-function updateInitialMutationCount() {
-  iecOptions.initialMutationCount = $( "#slider-initialMutationCount" ).slider( "value" );
-  iecGenerator.options.initialMutationCount = iecOptions.initialMutationCount;
-  $( "#amount-initialMutationCount" ).val( iecOptions.initialMutationCount );
-}
-function updatePostMutationCount() {
-  iecOptions.postMutationCount = $( "#slider-postMutationCount" ).slider( "value" );
-  iecGenerator.options.postMutationCount = iecOptions.postMutationCount;
-  $( "#amount-postMutationCount" ).val( iecOptions.postMutationCount );
-}
-
-function updateFTsize() {
-  fourierTransformTableSize = $( "#slider-ftSize" ).slider( "value" );
-  $( "#amount-ftSize" ).val( fourierTransformTableSize );
-}
-
+/*
 function renderNewRepetition() {
-  inputPeriods = $( "#slider-repetition" ).slider( "value" );
+  inputPeriods = $( "#repetition" )( "value" );
   if( populations[currentPopulationIndex].length > 0 ) {
 
     renderPopulation( currentPopulationIndex );
@@ -764,87 +1092,63 @@ function renderNewRepetition() {
   }
   $( "#amount-repetition" ).val( inputPeriods );
 }
-
-function updateModulatorGain() {
-  modulatorGain = $( "#slider-modulatorgain" ).slider( "value" );
-
-  // if( currentMemberIndex !== undefined && modulatorGain != $( "#amount-modulatorgain" ).val() ) {
-  //   playSelectedWaveformsForOneQuarterNoteC3();
-  // }
-
-  $( "#amount-modulatorgain" ).val( modulatorGain );
-}
-
-function updateModulatorDetune() {
-  modulatorDetune = $( "#slider-modulatordetune" ).slider( "value" );
-
-  // if( currentMemberIndex !== undefined && modulatorDetune != $( "#amount-modulatordetune" ).val() ) {
-  //   playSelectedWaveformsForOneQuarterNoteC3();
-  // }
-
-  $( "#amount-modulatordetune" ).val( modulatorDetune );
-}
-
-function updateModulatorQuarterOctaveOffset() {
-  modulatorQuarterOctaveOffset = $( "#slider-modulatorquarter" ).slider( "value" );
-
-  // if( currentMemberIndex !== undefined && modulatorQuarterOctaveOffset != $( "#amount-modulatorquarter" ).val() ) {
-  //   playSelectedWaveformsForOneQuarterNoteC3();
-  // }
-
-  $( "#amount-modulatorquarter" ).val( modulatorQuarterOctaveOffset );
-}
-
-
-
-var shouldModulate;
-var modulatorGain = 300;
-var modulatorDetune = 0;
-var modulatorQuarterOctaveOffset = 0;
-
+*/
 ///////////////////////////////////////////////////
-// oscillators
-// ( object setup inspired by http://greweb.me/2013/08/FM-audio-api/ )
+//
 
-// envelopes from http://jsfiddle.net/greweb/tyEKr/8/
-function noteOn( freq, time ) {
-  carrier.noteOn(freq, time);
-  modulator.noteOn(freq, time);
+function noteOn( ) {
+  carrier.noteOn();
 }
 
-function noteOff( time ) {
-  carrier.noteOff(time);
-  modulator.noteOff(time);
+function noteOff(  ) {
+  //noteOscillators["carrier"].noteOff();
+  carrier.noteOff();
 }
 
-function envelope( gainNode, time, volume, attackDuration, decayDuration, sustain ) {
-  gainNode.gain.cancelScheduledValues(time);
-  gainNode.gain.value = volume;
-  gainNode.gain.setValueAtTime(0, time);
-  gainNode.gain.linearRampToValueAtTime(volume, time + attackDuration);
-  gainNode.gain.linearRampToValueAtTime(volume * sustain, time + attackDuration + decayDuration);
-}
+/*
+function live(){
+  navigator.getUserMedia = ( navigator.getUserMedia ||
+                         navigator.webkitGetUserMedia ||
+                         navigator.mozGetUserMedia ||
+                         navigator.msGetUserMedia);
 
-function envelopeRelease( gainNode, time, releaseTime ) {
-  gainNode.gain.cancelScheduledValues(0);
-  //gainNode.gain.setValueAtTime(gainNode.gain.value, time);
-  gainNode.gain.linearRampToValueAtTime(0, time + releaseTime);
-}
-
-
-// A modulator with an oscillator and gain
-function Modulator( /*frequency, gain, detune */) {
-
-}
-Modulator.prototype = {
-  noteOn: function( /*freq, time*/ ) {
-    //envelope( this.gain, time, freq, this.attackDuration, this.decayDuration, this.sustain );
-
-  },
-  noteOff: function( /*time*/ ) {
-    //envelopeRelease( this.gain, time, this.releaseTime );
+  if (navigator.getUserMedia) {
+    navigator.getUserMedia ({audio:true},
+      function success(stream) {
+        console.log("stream");
+        // input source
+        source  = audioContext.createMediaStreamSource(stream);
+        // connect audio nodes
+        hookup();
+    },
+      function error(err) {
+        console.log("The following error occured: " + this.err);
+      }
+    );
+  } else {
+     console.log("getUserMedia not supported");
   }
 }
+
+function load(){
+
+  source = audioContext.createBufferSource();
+  request = new XMLHttpRequest();
+  request.open('GET', 'Audio2.wav', true);
+  request.responseType = 'arraybuffer';
+  request.onload = function() {
+    audioContext.decodeAudioData(request.response, function(data) {
+        source.buffer = data;
+        //console.log("data");
+      },
+      function(e){"Error with decoding audio data" + e.err});
+  }
+  request.send();
+
+}
+*/
+
+///////////////////////////////////////////
 // distortion
 function makeDistortionCurve(amount) {
   // console.log(amount);
@@ -860,7 +1164,11 @@ function makeDistortionCurve(amount) {
   }
   return curve;
 };
+
+///////////////////////////////////////////
 // compressor
+var thresh, ratio, attack, release
+
 function comp(){
   compressor.threshold.value = -50;
   compressor.knee.value = 40;
@@ -870,346 +1178,413 @@ function comp(){
   compressor.release.value = 0.25;
 }
 
-function Carrier(  ) {
-  this.noteOff();
-  console.log("carrier");
-  // load sampled audio
-  if(live == false){
-    this.load();
+// squareroot modulation
+var squareTable = [];
+function squareInit(){
+    for(var i = 0; i < 1024; i++){
+      squareTable[i] = Math.sqrt(i/1024);
+    }
+}
+squareInit();
+
+
+
+
+//////////////////////////////////////////
+// convolver
+/*
+function loadBuffer(ctx, filename, callback) {
+  var request = new XMLHttpRequest();
+  request.open("GET", filename, true);
+  request.responseType = "arraybuffer";
+  request.onload = function() {
+    // Create a buffer and keep the channels unchanged.
+    ctx.decodeAudioData(request.response, callback, function() {
+      alert("Decoding the audio buffer failed");
+    });
+  };
+  request.send();
+}
+*/
+// reverb
+var impulseResponse = function ( duration, decay, reverse ) {
+    var sampleRate = audioContext.sampleRate;
+    var length = sampleRate * duration + 0.1;
+    var impulse = audioContext.createBuffer(2, length, sampleRate);
+    var impulseL = impulse.getChannelData(0);
+    var impulseR = impulse.getChannelData(1);
+/*
+    if (!decay)
+        decay = 2.0;
+*/
+    for (var i = 0; i < length; i++){
+      var n = reverse ? length - i : i;
+      impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+      impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+    }
+    return impulse;
+}
+
+
+///////////////////////////////////////////
+// connect nodes
+/*
+var hookup = function (){
+
+  if(inputType == "live"){
+    source  = audioContext.createMediaStreamSource(streamer);
+    isPlaying = false;
+  }else{
+    source = audioContext.createBufferSource();
+    isPlaying = true;
   }
 
-  this.gain = audioContext.createGain();
-  var convolverBuffer;
+//  masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
 
-  //////////////////////////////////////////////////
-  // 'mate' the guitar samples with CPPNs
-  processor = audioContext.createScriptProcessor(fourierTransformTableSize, 1, 1);
+  // (duration, decay, reverse)
+  convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+
+//  compressor.connect(masterGain);
+  compGain.connect(masterGain);
+  compressor.connect(compGain);
+
+  distortion.connect(compressor);
+  distGain.connect(masterGain);
+  distortion.connect(distGain);
+  sourceGain.connect(distortion)
+
+  convolver.connect(compressor);
+  convolverGain.connect(masterGain);
+  convolver.connect(convolverGain);
+  procGain.connect(convolver);
+
+  biquadFilter.connect(compressor);
+  procGain.connect(biquadFilter);
+
+  procGain.connect(masterGain);
+  processor.connect(procGain);
+  analyser.connect(processor);
+  source.connect(analyser);
+
+  source.connect(compressor); // ?
+  sourceGain.connect(masterGain);
+  source.connect(sourceGain);
+
+  masterGain.connect(audioContext.destination);
+  masterGain.connect(recorderGain);
+}
+*/
+function stop(){
+
+  return function()
+  {
+
+    // cut reverb
+    convolver.buffer = impulseResponse(0.1,0.1,false);
+    convolver.buffer = null;
+
+    // turn down volume
+    masterGain.disconnect(audioContext.destination);
+
+    //console.log("stop");
+    if(isPlaying){
+      isPlaying = false;
+      //source.stop(0);
+    }
+    source.disconnect();
+    processor.disconnect();
+    processor = null;
+    processor.onaudioprocess = null;
+  }
+}
+
+
+function Carrier(  ) {
+
+  ///////////////////////////////////////
+  // real-time editing
+  // putting the processor here means we must make sure the former processor is shut down first
+  processor = audioContext.createScriptProcessor(1024, 1, 1);
   processor.onaudioprocess = function(event){
-    // guitar
+    // audio input
     var inputBuff = event.inputBuffer;
-    // TRY a convolver
-    // convolverBuffer = audioContext.createBuffer(2, 0.5 * inputBuff.length, audioContext.sampleRate);
-
-    // samples to be manipulated
+    // audio output
     var outputBuff = event.outputBuffer;
-    // Loop through the output channels
+
+    // Loop through the # channels
     for (var channel = 0; channel < outputBuff.numberOfChannels; channel++) {
+
       var inputData = inputBuff.getChannelData(channel);
       var outputData = outputBuff.getChannelData(channel);
 
-      //var chnDta = convolverBuffer.getChannelData[channel];
-
-      // Loop through the samples
+      // audio samples
       for (var sample = 0; sample < inputBuff.length; sample++) {
         // make output equal to the same as the input
         outputData[sample] = inputData[sample];  //
-        //chnDta[sample] = Math.random() *2 -1;
 
-        var eff = Math.sin(0.0);
+        // carrier and modulation waves are the same for this purpose. I kept the carrier
+        var cppn = carrierWave[sample];
 
-        eff += ( carrierWave[sample] * modulationWave[sample]) / 6;
+        // Amplitude modulation
+        if(amplitude){
+          var amplitudeMod = cppn*clipFactor;
+          outputData[sample] *=  ( (amplitudeMod*dryAmount) + (1.0-dryAmount)) ;
+        }
 
-        var cppn = ( carrierWave[sample] + modulationWave[sample] ) * (effectGain/100);
+        // Multiplication modulation
+        if(addition){
+          var additionMod = cppn*clipFactor;
+          outputData[sample] += (additionMod*dryAmount + (1.0-dryAmount));
+        }
 
+        // envelope'ish modulation
+        if(squareroot){
+          var squareMod = (cppn*clipFactor) * squareTable[sample]; // Math.sqrt( sample/fourierTransformTableSize)
+          outputData[sample] *= ( (squareMod*dryAmount) + (1.0-dryAmount));
+        }
 
-
-        // amplitude modulation effect
-        outputData[sample] *=  cppn ;// add neurons here
-        outputData[sample] += inputData[sample]/cleanSoundAmount;
-
+        ///////////////////////////////////
+        // clipping
+        var clipOver = outputData[sample] -1.0;
+        var clipUnder = outputData[sample] +1.0;
+        if(clipOver > 0.0){
+          outputData[sample] -= (clipOver+0.1);
+        }else if(clipUnder < 0.0){
+          outputData[sample] += (clipUnder-0.1);
+        }
+        //masterGain.gain.value -= clipAmount;
+        ////////////////////////////////////
       }
     }
+
+/*
+    source.onended = function(){
+      stop();
+    }
+*/
+    //////////////////////////////
+    // frequency spectrum
+    var array =  new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(array);
+    // clear current state
+    ctx2.clearRect(0, 0, 400, 50);
+    // set fill style
+    ctx2.fillStyle=gradient;
+    //draw!
+    drawSpectrum(array);
+    /////////////////////////////
   }
 
-  /* Not when live input
-  ///////////////////////////////////////////////
-  source.onended = function(){
-    console.log("end");
-    source.disconnect(processor);
-    processor.disconnect(audioContext.destination);
-  }*/
-
-  /////////////////////////////
-  // hook up effects
-
-  // build a compressor
-  comp();
-
-  source.connect(analyser);
-  analyser.connect(this.gain);
-  this.gain.connect(processor);
-  this.gain.gain.value = 1.0;
-
-  // build a distortion
-  processor.connect(distortion);
-  distortion.curve = makeDistortionCurve(distortionGain);
-  distortion.oversample = '4x';
-
-  distortion.connect(compressor);
-
-//    convolver.buffer = convolverBuffer;
-//    compressor.connect(convolver);
-
-  compressor.connect(audioContext.destination);
-
-  //////////////////////////////
-  // meter
-
-  // connect the source to the analyser and the splitter
-  source.connect(splitter);
-
-  // connect one of the outputs from the splitter to
-  // the analyser
-  splitter.connect(analyser,0,0);
-  splitter.connect(analyser2,1,0);
-  analyser.connect(javascriptNode);
 }
+
 Carrier.prototype = {
-  noteOn: function( time ) {
-    source.connect(processor);
-    processor.connect(audioContext.destination);
-    //if(live == false){
-    //source.start(0);
-    // }
-  },
-  noteOff: function( time ) {
-    if(processor){
-      source.disconnect(processor);
-      processor.disconnect(audioContext.destination);
+  noteOn: function(  ) {
+    if(inputType == "sample"){
+      if(isPlaying){
+        stop();
+      }
+      this.load();
+      this.hookup();
+      // hookup();
+      source.start();
+      isPlaying = true;
+    }else{
+      this.hookup();
     }
+  },
+  noteOff: function(  ) {
+    stop();
   }, // load audio
   load: function(){
-    source = audioContext.createBufferSource();
-    if(live == false){
-      request = new XMLHttpRequest();
-      request.open('GET', 'Audio2.wav', true);
-      request.responseType = 'arraybuffer';
-      request.onload = function() {
-        audioContext.decodeAudioData(request.response, function(data) {
-            source.buffer = data;
-          },
-          function(e){"Error with decoding audio data" + e.err});
-      }
-      request.send();
+    //console.log("load");
+    request = new XMLHttpRequest();
+    request.open('GET', 'tst.wav', true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+      audioContext.decodeAudioData(request.response, function(data) {
+          // source.buffer = null;
+          source.buffer = data;
+          //console.log("loaded");
+          //hookup();
+        },
+        function(e){"Error with decoding audio data" + e.err});
     }
+    request.send();
+    // live input
+  },
+  hookup: function(){
+    if(inputType == "live"){
+      source  = audioContext.createMediaStreamSource(streamer);
+      isPlaying = false;
+    }else{
+      source = audioContext.createBufferSource();
+      isPlaying = true;
+    }
+
+  //  masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
+
+    // (duration, decay, reverse)
+    convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+
+  //  compressor.connect(masterGain);
+    compGain.connect(masterGain);
+    compressor.connect(compGain);
+
+    distortion.connect(compressor);
+    distGain.connect(masterGain);
+    distortion.connect(distGain);
+    sourceGain.connect(distortion)
+
+    convolver.connect(compressor);
+    convolverGain.connect(masterGain);
+    convolver.connect(convolverGain);
+    procGain.connect(convolver);
+
+    biquadFilter.connect(compressor);
+    procGain.connect(biquadFilter);
+
+    procGain.connect(masterGain);
+    processor.connect(procGain);
+    analyser.connect(processor);
+    source.connect(analyser);
+
+    source.connect(compressor); // ?
+    sourceGain.connect(masterGain);
+    source.connect(sourceGain);
+
+    masterGain.connect(audioContext.destination);
+    masterGain.connect(recorderGain);
+
+  },
+  init: function(){
 
   }
 }
+
+
+
 //////////////////////////////////////////////
-// Default action. Access to the microphone.
-// If a guitar is plugged in, that will be the input.
+// connect michrophone
+// Default action: access to the microphone.
+// If a guitar is plugged in, it will be the input.
+
 window.onload = function(){
+//var live = function(){
+/*var constraints = { audio: { optional:[{googEchoCancellation: false, googAutoGainControl: false, googNoiseSuppression: false,
+  googHighpassFilter: false }] } };
+*/
+
+var constraints =  {"audio": {
+                                "mandatory": {
+                                    "googEchoCancellation": "false",
+                                    "googAutoGainControl": "false",
+                                    "googNoiseSuppression": "false",
+                                    "googHighpassFilter": "false"
+                                },
+                                "optional": []
+                            }};
+/*
+            navigator.getUserMedia(
+                {
+                    "audio": {
+                        "mandatory": {
+                            "googEchoCancellation": "false",
+                            "googAutoGainControl": "false",
+                            "googNoiseSuppression": "false",
+                            "googHighpassFilter": "false"
+                        },
+                        "optional": []
+                    },
+                }, gotStream, function(e) {
+                    alert('Error getting audio');
+                    console.log(e);
+                });
+        }
+*/
+
+
+
+
   navigator.getUserMedia = ( navigator.getUserMedia ||
                          navigator.webkitGetUserMedia ||
                          navigator.mozGetUserMedia ||
                          navigator.msGetUserMedia);
 
   if (navigator.getUserMedia) {
-    navigator.getUserMedia ({audio:true}, success,  error );
+    navigator.getUserMedia (constraints, success,  error );
   } else {
      console.log("getUserMedia not supported");
   }
 }
-
+// onload failure callback
 function error(err) {
   console.log("The following error occured: " + this.err);
 }
-
-// set guitar/microphone stream as input
+// onload succes callback
 function success(stream) {
-  console.log("stream");
-  // an input source
-  source = audioContext.createMediaStreamSource(stream);
+  // input source
+  //source  = audioContext.createMediaStreamSource(stream);
+  // connect audio nodes
+  //hookup();
+  streamer = stream;
+  // inputType = "live";
+//  console.log("success");
+
+// user allowed access to microphone. Render first population
+  renderPopulation( currentPopulationIndex );
 }
 
 
-function createAndPlayModulatorsForFrequency( frequency, initialGain ) {
-
+function createAndPlayModulatorsForFrequency(  ) {
   var carrier = new Carrier(  );
-  var modulator = undefined;
 
-  if( shouldModulate ) {
 
-    modulator = new Modulator(  );
-  //  modulator.gain.connect( carrier.oscillator.frequency );
-  }
 
-  carrier.gain.gain.value = initialGain;
-  carrier.gain.connect( masterGain );
+
+
+
+
 
   return {
     "carrier": carrier,
-    "modulator": modulator
   };
 }
 
-function playSelectedWaveformsForOneQuarterNoteC3( recordSample ) {
+function playSelectedWaveformsForOneQuarterNoteC3(  ) {
+  // console.log("select");
+  // connect selected waveform
+  var noteOscillators = createAndPlayModulatorsForFrequency( );
 
-  // let's play the selected waveforms at C3 (130.813 Hz)
-  // for the duration of one Quarter Note at 120 BPM (500 ms)
-  var frequency = 130.813;
-  var noteDuration = 500;
-  if( useEnvelope ) {
-
-    if( recordSample ) {
-      rec.record();
-    }
-
-    var noteOscillators = createAndPlayModulatorsForFrequency( frequency, 0 );
-    if( noteOscillators["modulator"] ) {
-      noteOscillators["modulator"].noteOn( frequency, audioContext.currentTime );
-    }
-    noteOscillators["carrier"].noteOn( frequency, audioContext.currentTime );
-
-/*    window.setTimeout(function(){
-
-      if( noteOscillators["modulator"] ) {
-        noteOscillators["modulator"].noteOff( audioContext.currentTime );
-        disconnectWaveOscillator( noteOscillators["modulator"] );
-      }
-      noteOscillators["carrier"].noteOff( audioContext.currentTime );
-      disconnectWaveOscillator( noteOscillators["carrier"], recordSample );
-
-    }, noteDuration);
-    */
-
-  } else {
-
-    if( recordSample ) {
-      rec.record();
-    }
-
-    var noteOscillators = createAndPlayModulatorsForFrequency( );
+  // stop previous sound
+  if(isPlaying){stop()};
 
 
-  /*  window.setTimeout(function(){
-
-      if( recordSample ) {
-        stopRecordingAndSave();
-      }
-
-      if( noteOscillators["modulator"] ) {
-        noteOscillators["modulator"].oscillator.stop(0);
-        noteOscillators["modulator"].oscillator.disconnect();
-      }
-      noteOscillators["carrier"].oscillator.stop(0);
-      noteOscillators["carrier"].oscillator.disconnect();
-    }, noteDuration);
-    */
-
-  }
+  noteOscillators["carrier"].noteOn(  );
 
 
 }
 
-
-
-/////////////////////////////////////////////
-// A meter.
-// when the javascript node is called
-// we use information from the analyzer node
-// to draw the volume
-javascriptNode.onaudioprocess = function() {
-    // console.log("meter");
-    // get the average for the first channel
-    var array =  new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(array);
-    var average = getAverageVolume(array);
-
-    // get the average for the second channel
-    var array2 =  new Uint8Array(analyser2.frequencyBinCount);
-    analyser2.getByteFrequencyData(array2);
-    var average2 = getAverageVolume(array2);
-
-
-    // clear the current state
-    ctx.clearRect(0, 0, 80, 130);
-
-    // set the fill style
-    ctx.fillStyle=gradient;
-
-    // create the meters
-    ctx.fillRect(0,130-average,25,130);
-    ctx.fillRect(30,130-average2,25,130);
-
-
-
-    //////////////////////////////
-    // frequency spectrum
-    // clear the current state
-    ctx2.clearRect(0, 0, 1000, 325);
-
-    // set the fill style
-    ctx2.fillStyle=gradient;
-
-    drawSpectrum(array);
-
-}
-
-function getAverageVolume(array) {
-    var values = 0;
-    var average;
-
-    var length = array.length;
-
-    // get all the frequency amplitudes
-    for (var i = 0; i < length; i++) {
-        values += array[i];
-    }
-
-    average = values / length;
-    return average;
-}
-
-
-var gradient = ctx.createLinearGradient(0,0,0,300);
-function frequencySpectrum(){
-    // create a gradient for the fill. Note the strange
-    // offset, since the gradient is calculated based on
-    // the canvas, not the specific element we draw
-    gradient.addColorStop(1,'#000000');
-    gradient.addColorStop(0.75,'#ff0000');
-    gradient.addColorStop(0.25,'#ffff00');
-    gradient.addColorStop(0,'#ffffff');
-
-}
-frequencySpectrum();
-
+///////////////////////////////
+// draw spectrum
 function drawSpectrum(array) {
-        for ( var i = 0; i < (array.length); i++ ){
-            var value = array[i];
-            ctx2.fillRect(i*5,325-value,3,325);
-            //  console.log([i,value])
-            ctx2.globalAlpha = 0.2;
-        }
+    for ( var i = 0; i < (array.length); i++ ){
+        ctx2.fillRect(i*5,50-(array[i]/6),3,45);
+        //  console.log([i,value])
+        //ctx2.globalAlpha = 0.2;
+    }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var useEnvelope = false;
-
+// var useEnvelope = false;
+/*
 var masterGain = audioContext.createGain();
 masterGain.gain.value = 0.2;
 masterGain.connect( audioContext.destination );
-
+*/
 ///////////////////////////////////////////////////
 // sample recording
-var rec = new Recorder( masterGain, {'workerPath': 'lib/recorderjs/recorderWorker.js'} );
+var rec = new Recorder( recorderGain, {'workerPath': 'lib/recorderjs/recorderWorker.js'} );
 
+var recCount = 0;
 function stopRecordingAndSave() {
   rec.stop();
 
