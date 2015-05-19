@@ -10,7 +10,7 @@
    <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
 
   <script src="lib/neat-build.js"></script>
-<!--  <script src="lib/dygraph-combined.js"></script> -->
+  <script src="lib/dygraph-combined.js"></script> 
   <script src="lib/dsp.js"></script>
   <script src="lib/recorderjs/recorder.js"></script>
 
@@ -250,6 +250,40 @@ h4{line-height:4pt;}
         </div>
     </div>
 
+    <div class="box">
+      <div class="boxcol-set">
+        <div class="boxcol">
+          <h3>Sends</h3>
+            <div class="boxcol-set" STYLE="background: #000000;">
+              <div class="boxcol" id="live" >
+                <div class="knobber">
+                  <p><label for="amount-send1">Distortion:</label></p>
+                  <input type="text" id="send1" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-send2">Reverb:</label></p>
+                  <input type="text" id="send2" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-send3">CPPN:</label></p>
+                  <input type="text" id="send3" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="boxcol">
+            <h3>...</h3>
+              <div class="boxcol-set" STYLE="background: #000000;">
+                <div class="boxcol" id="live"  STYLE="height: 50pt;">
+
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="box">
       <h2></h2>
@@ -292,7 +326,7 @@ h4{line-height:4pt;}
               <div class="boxcol-set" STYLE="background: #000000;">
                 <div class="boxcol">
                   <div class="knobber">
-                    <p><label for="amount-master">Gain:</label></p>
+                    <p><label for="amount-master">Master:</label></p>
                     <input type="text" id="mastergain" value="45" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                   <div class="knobber">
@@ -308,7 +342,7 @@ h4{line-height:4pt;}
                     <input type="text" id="clippingAmount" value="0.3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                   <div class="knobber">
-                    <p><label for="source-amount">Dry:</label></p>
+                    <p><label for="source-amount">Source-level:</label></p>
                     <input type="text" id="sourceamount" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                 </div>
