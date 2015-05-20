@@ -1200,21 +1200,6 @@ squareInit();
 
 
 //////////////////////////////////////////
-// convolver
-/*
-function loadBuffer(ctx, filename, callback) {
-  var request = new XMLHttpRequest();
-  request.open("GET", filename, true);
-  request.responseType = "arraybuffer";
-  request.onload = function() {
-    // Create a buffer and keep the channels unchanged.
-    ctx.decodeAudioData(request.response, callback, function() {
-      alert("Decoding the audio buffer failed");
-    });
-  };
-  request.send();
-}
-*/
 // reverb
 var impulseResponse = function ( duration, decay, reverse ) {
     var sampleRate = audioContext.sampleRate;
@@ -1321,8 +1306,6 @@ function stop(){
     processor.onaudioprocess = null;
     processor = null;
 
-    //processor = audioContext.createScriptProcessor(0, 1, 1);
-
 }
 
 function process(){
@@ -1370,16 +1353,6 @@ function process(){
           outputData[sample] *= ( (cppn*squareTable[sample]*dryAmount) + (1.0-dryAmount) );
         }
 
-  /* clipping
-        if(outputData[sample] > 32767 ){
-          outputData[sample] = 32767;
-        }
-
-        if(outputData[sample] < - 32767 ){
-          outputData[sample] = - 32767;
-        }
-  */
-
         ///////////////////////////////////
         // clipping
         clipOver = outputData[sample] -1.0;
@@ -1422,7 +1395,9 @@ Carrier.prototype = {
   },
   noteOff: function(  ) {
 
-  }, // load audio
+  }
+  /*
+  , // load audio
   load: function(){
     //console.log("load");
     request = new XMLHttpRequest();
@@ -1440,13 +1415,14 @@ Carrier.prototype = {
     request.send();
     // live input
   }
+  */
 }
 
 
 function load(){
   //console.log("load");
   request = new XMLHttpRequest();
-  request.open('GET', 'tst.wav', true);
+  request.open('GET', 'grund.wav', true);
   request.responseType = 'arraybuffer';
   request.onload = function() {
     audioContext.decodeAudioData(request.response, function(data) {
@@ -1462,16 +1438,12 @@ function load(){
 
 }
 
+
 //////////////////////////////////////////////
 // connect michrophone
-// Default action: access to the microphone.
 // If a guitar is plugged in, it will be the input.
 
 window.onload = function(){
-//var live = function(){
-/*var constraints = { audio: { optional:[{googEchoCancellation: false, googAutoGainControl: false, googNoiseSuppression: false,
-  googHighpassFilter: false }] } };
-*/
 
 var constraints =  {"audio": {
                                 "mandatory": {
@@ -1500,43 +1472,30 @@ function error(err) {
 }
 // onload succes callback
 function success(stream) {
-  // input source
-  //source  = audioContext.createMediaStreamSource(stream);
-  // connect audio nodes
-  //hookup();
   streamer = stream;
-  // inputType = "live";
-//  console.log("success");
-
-// user allowed access to microphone. Render first population
+  // the user has granted access to the microphone. Now, render first population.
   renderPopulation( currentPopulationIndex );
 }
 
 
 function createAndPlayModulatorsForFrequency(  ) {
   var carrier = new Carrier(  );
-
   return {
     "carrier": carrier,
   };
 }
 
 function playSelectedWaveformsForOneQuarterNoteC3(  ) {
-  // console.log("select");
-  // connect selected waveform
-//  var noteOscillators = createAndPlayModulatorsForFrequency( );
 
   // stop previous sound
-  if(inputType == "sample"){
+  if(inputType == "sample"){ // use default audio sample
     if(isPlaying){
       stop();
     }
-  //  noteOscillators["carrier"].load();
     load();
     hookup();
     source.start();
     isPlaying = true;
-    //noteOscillators["carrier"].noteOn();
   }else{
     hookup();
   }
@@ -1550,17 +1509,9 @@ function playSelectedWaveformsForOneQuarterNoteC3(  ) {
 function drawSpectrum(array) {
     for ( var i = 0; i < (array.length); i++ ){
         ctx2.fillRect(i*5,50-(array[i]/6),3,45);
-        //  console.log([i,value])
-        //ctx2.globalAlpha = 0.2;
     }
 };
 
-// var useEnvelope = false;
-/*
-var masterGain = audioContext.createGain();
-masterGain.gain.value = 0.2;
-masterGain.connect( audioContext.destination );
-*/
 ///////////////////////////////////////////////////
 // sample recording
 var rec = new Recorder( recorderGain, {'workerPath': 'lib/recorderjs/recorderWorker.js'} );
