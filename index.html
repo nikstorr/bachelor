@@ -10,7 +10,7 @@
    <script src="bower_components/jquery-knob/js/jquery.knob.js"></script>
 
   <script src="lib/neat-build.js"></script>
-  <script src="lib/dygraph-combined.js"></script> 
+  <script src="lib/dygraph-combined.js"></script>
   <script src="lib/dsp.js"></script>
   <script src="lib/recorderjs/recorder.js"></script>
 
@@ -129,7 +129,7 @@ label{font-size:8pt}
 .member-container > div[id^="graph-"] {
   width: 180px;
   height: 150px;
-  background-color:blue
+  background-color:white
 }
 
 .member-container span.computing-message {
@@ -258,15 +258,19 @@ h4{line-height:4pt;}
               <div class="boxcol" id="live" >
                 <div class="knobber">
                   <p><label for="amount-send1">Distortion:</label></p>
-                  <input type="text" id="send1" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="send1" value="0.2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
                 <div class="knobber">
                   <p><label for="amount-send2">Reverb:</label></p>
-                  <input type="text" id="send2" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="send2" value="0.2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
                 <div class="knobber">
                   <p><label for="amount-send3">CPPN:</label></p>
                   <input type="text" id="send3" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                </div>
+                <div class="knobber">
+                  <p><label for="amount-send4">Low cut:</label></p>
+                  <input type="text" id="send4" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
               </div>
 
@@ -298,7 +302,7 @@ h4{line-height:4pt;}
             <div class="boxcol">
               <div class="knobber">
                 <p><label for="amount-attack">Attack:</label></p>
-                <input type="text" id="attack" value="0.25" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                <input type="text" id="attack" value="0.15" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
               </div>
               <div class="knobber">
                 <p><label for="amount-ratio">ratio:</label></p>
@@ -309,11 +313,11 @@ h4{line-height:4pt;}
             <div class="boxcol">
               <div class="knobber">
                 <p><label for="amount-release">Release:</label></p>
-                <input type="text" id="release" value="0.5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                <input type="text" id="release" value="0.2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
               </div>
               <div class="knobber">
                 <p><label for="amount-threshold">Threshold:</label></p>
-                <input type="text" id="threshold" value="-30" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                <input type="text" id="threshold" value="-45" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
               </div>
             </div> <!-- boxcol-->
 
@@ -327,11 +331,11 @@ h4{line-height:4pt;}
                 <div class="boxcol">
                   <div class="knobber">
                     <p><label for="amount-master">Master:</label></p>
-                    <input type="text" id="mastergain" value="45" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                    <input type="text" id="mastergain" value="0.5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                   <div class="knobber">
                     <p><label for="amount-effect"> <-Wet-Dry-> </label></p>
-                    <input type="text" id="mix" value="5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round data-cursor=true>
+                    <input type="text" id="mix" value="0.5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round data-cursor=true>
                   </div>
                 </div>
                 <div class="boxcol">
@@ -343,7 +347,7 @@ h4{line-height:4pt;}
                   </div>
                   <div class="knobber">
                     <p><label for="source-amount">Source-level:</label></p>
-                    <input type="text" id="sourceamount" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                    <input type="text" id="sourceamount" value="0.3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                 </div>
 
@@ -385,7 +389,7 @@ h4{line-height:4pt;}
               <div class="boxcol">
                 <div class="knobber">
                   <p><label for="amount-cppn">Gain :</label></p>
-                  <input type="text" id="cppnamount" value="7" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="cppnamount" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
               </div> <!-- boxcol -->
 
@@ -396,7 +400,7 @@ h4{line-height:4pt;}
                 </div>
                 <div class="knobber">
                   <p><label for="amount-lowcut">Gain :</label></p>
-                  <input type="text" id="lowcutgain" value="5" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="lowcutgain" value="0" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
 
               </div> <!-- boxcol -->
@@ -477,7 +481,7 @@ h4{line-height:4pt;}
             <div class="knobber">
               <div class="rep">
                 <p><label for="amount-reverbgain">Gain:</label></p>
-                <input type="text" id="reverbgain" value="3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                <input type="text" id="reverbgain" value="30" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
               </div>
               <div id="variation_box">
                 <label id="reverse_label"><input type="checkbox" name="reverse" id="reverse"/> Reverse</label>
@@ -502,7 +506,7 @@ h4{line-height:4pt;}
             <div class="knobber">
               <div class="knobber">
                 <p><label for="amount-distortiongain">Gain:</label></p>
-                <input type="text" id="distortiongain" value="1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                <input type="text" id="distortiongain" value="0.1" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
               </div>
 
             </div>

@@ -3,43 +3,38 @@ var cppnjs = require('optimuslime~cppnjs@master');
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContext();
-
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
 // mix
-send1 = audioContext.createGain();
-send2 = audioContext.createGain();
-send3 = audioContext.createGain();
-send4 = audioContext.createGain();
+var send1 = audioContext.createGain();
+var send2 = audioContext.createGain();
+var send3 = audioContext.createGain();
+var send4 = audioContext.createGain();
 
-sg1 = audioContext.createGain();
-sg2 = audioContext.createGain();
-sg3 = audioContext.createGain();
-sg4 = audioContext.createGain();
-sg5 = audioContext.createGain();
+var sg_dry = audioContext.createGain(); // signal
+var sg_wet = audioContext.createGain(); // effect
+
+var sg1 = audioContext.createGain(); // distortion
+var sg2 = audioContext.createGain(); // reverb
+var sg3 = audioContext.createGain(); // processor
+var sg4 = audioContext.createGain(); // not used yet
+var sg5 = audioContext.createGain(); // not used yet
+
 
 //////////////////////////////////////////////////////
 //guitar
 
-
-var inputType = "sample";
-var audioData = null;
-var audioBuffer;
-var sourceBuffer;
-var source;    // sound sources
-var dryAmount = 0.5; // < dry - wet > audio
-// live input stream buffer
-var streamer;
-
-var isPlaying = false;
-
+// low cut filter
 var biquadFilter = audioContext.createBiquadFilter();
-biquadFilter.type = "lowshelf";
+biquadFilter.type = "peaking";
 biquadFilter.frequency.value = 1000;
-biquadFilter.gain.value = 25;
+biquadFilter.Q.value = 100;
 var filterGain = audioContext.createGain();
 
-var sourceGain = audioContext.createGain();
-sourceGain.gain.value = 0.7;
+// analyser
+var analyser = audioContext.createAnalyser();
+analyser.smoothingTimeConstant = 0.3;
+analyser.fftSize = 256;
+
 
 // master gains
 var recorderGain = audioContext.createGain();
@@ -49,11 +44,23 @@ recorderGain.connect(audioContext.destination);
 var masterGain = audioContext.createGain();
 masterGain.gain.value = 0.45;
 
+var inputType = "sample";
+var audioData = null;
+var audioBuffer;
+var sourceBuffer;
+//var source = audioContext.createBufferSource();    // sound sources
+var sourceGain = audioContext.createGain();
+
+var dryAmount = 0.5; // < dry - wet > audio
+// live input stream buffer
+var streamer;
+
+var isPlaying = false;
 
 //var request; //
-//var processor = audioContext.createScriptProcessor(0, 1, 1);
-var procGain = audioContext.createGain();
-procGain.gain.value = 0.5;
+// var processor = audioContext.createScriptProcessor(0, 1, 1);
+//var procGain = audioContext.createGain();
+//procGain.gain.value = 0.5;
 
 //var buff = audioContext.createBuffer(2, audioContext.sampleRate *2.0, audioContext.sampleRate);
 var effectGain = 0.5;      // Initial amount of CPPN effect
@@ -79,13 +86,13 @@ var convolver = audioContext.createConvolver();
 var convGain = audioContext.createGain();
 convGain.gain.value = 1.0;
 
+
+
+
 //////////////////////////////////////////////////////
 // Visuals
 
 // Analyser: time <-> frequency domain
-var analyser = audioContext.createAnalyser();
-analyser.smoothingTimeConstant = 0.3;
-analyser.fftSize = 256;
 
 ////////////////////////////////////
 // frequency spectrum
@@ -327,7 +334,9 @@ function renderPopulation( populationIndex ) {
     var oneMemberCPPN = oneMember.offspring.networkDecode();
     // console.log( "connections: " + oneMemberCPPN.connections.length + ", neurons: " + oneMemberCPPN.totalNeuronCount );
 
-    /* */
+    // graphs
+    var graphOutput = [];
+    // CPPNs
     var oneMemberOutputs = [];
     for( var j=0; j < fourierTransformTableSize; j++ ) {
       var rangeFraction = j / (fourierTransformTableSize-1);
@@ -344,23 +353,42 @@ function renderPopulation( populationIndex ) {
 
       oneMemberCPPN.recursiveActivation();
 
+/*
       oneMemberOutputs.push(
         [j, oneMemberCPPN.getOutputSignal(0), oneMemberCPPN.getOutputSignal(1)] );
+*/
+
+      oneMemberOutputs.push(
+        [j, oneMemberCPPN.getOutputSignal(0), oneMemberCPPN.getOutputSignal(1)] );
+
+      // prune a CPPN for a graphical representation
+
+      graphOutput.push(
+        [j, oneMemberCPPN.getOutputSignal(1)]);
     }
 
     currentPopulationMemberOutputs.push( oneMemberOutputs );
 
-
+/*
     new Dygraph(
       document.getElementById("graph-"+i),
       oneMemberOutputs,
       {
-        labels: ["time (frequency?) domain", "modulation" , "carrier"],
+        labels: ["time (frequency?) domain", "modulation", "carrier"],
         valueRange: [-1, 1]
       }
     );
+*/
 
 
+    new Dygraph(
+      document.getElementById("graph-"+i),
+      graphOutput,
+      {
+        labels: ["time (frequency?) domain", "carrier"],
+        valueRange: [-1, 1]
+      }
+    );
 
 
   }
@@ -480,7 +508,7 @@ function backOneGeneration() {
     }
 
     $( ".member-container" ).each( function(){
-      $(this).find("div:first").css( {"background-color": "blue"} );
+      $(this).find("div:first").css( {"background-color": "white"} );
     });
 
     displayCurrentGeneration();
@@ -575,7 +603,7 @@ $(function() {
       /* ... we de-select all other 'sounds'*/
       selectedMembersIndexes.forEach(function(memberIdx, index, array){
         var $oneMemberContainer = $("#member-container-"+memberIdx);
-        $oneMemberContainer.find("div:first").css( {"background-color": "blue"} );
+        $oneMemberContainer.find("div:first").css( {"background-color": "white"} );
 
         // let's deselect all members other than the one clicked for now
         $oneMemberContainer.find("#member-"+memberIdx).attr( "checked", false );
@@ -668,15 +696,16 @@ $(function() {
   $("#mastergain").knob(
     {
       'min':0,
-      'max':100,
-      'step':1,
+      'max':1,
+      'step':0.1,
       'change': function(event){
-        var volume = event;
-        var fraction = parseInt(volume) / parseInt(100);
+        //var volume = event;
+        //var fraction = parseInt(volume) / parseInt(1);
         // Let's use an x*x curve (x-squared) since simple linear (x) does not
         // sound as good.
-        masterGain.gain.value = (fraction*fraction);
-        //console.log(fraction*fraction);
+        if(event < 0.02){event == 0.0;}
+        masterGain.gain.value = event; //(fraction*fraction);
+        console.log(event);
       }
     }
   );
@@ -686,36 +715,12 @@ $(function() {
   $("#mix").knob(
     {
       'min':0,
-      'max':10,
+      'max':1,
       'step':0.1,
     	'change': function(event){
-
-        //var fraction = parseInt(event) / parseInt(100);
-        fraction = parseInt(event) / parseInt(10);
-
-
-        // dryAmount is used in the scriptProcessor to decide the
-        // multiplicationfactor when modulating
-
-        // dryAmount = (fraction*fraction)+0.1 ;
-        dryAmount = Math.cos((1.0 - fraction) * 0.44 * Math.PI);
-
-        /* Use an equal-power crossfading curve:
-        var gain1 = Math.cos(fraction * 0.5*Math.PI);
-        var gain2 = Math.cos((1.0 - fraction) * 0.5*Math.PI);
-        masterWet.gain.value = gain1;
-        masterDry.gain.value = gain2;
-        */
-
-        // var newVolume = fraction*fraction;
-        // dry gain
-        // sourceGain.gain.value = newVolume;
-        // wet gain
-        // procGain.gain.value = parseInt(1)- newVolume;
-
-//        console.log("dryAmount: "+ dryAmount);
-        // console.log("dry: " + sourceGain.gain.value);
-        // console.log("wet: " + procGain.gain.value);
+        dryAmount = event;
+        sg_dry.gain.value = 1.0-event; //(fraction*fraction);
+        sg_wet.gain.value = event;
       }
     }
   );
@@ -724,8 +729,8 @@ $(function() {
   $("#sourceamount").knob(
     {
       'min':0,
-      'max':20,
-      'step':1,
+      'max':1,
+      'step':0.1,
     	'change': function(event){
         sg1.gain.value = event;
       }
@@ -747,11 +752,10 @@ $(function() {
   $("#distortiongain").knob(
     {
       'min':0,
-      'max':10,
-      'step':1,
+      'max':1,
+      'step':0.1,
     	'change': function(event){
         sg2.gain.value = event;
-
       }
     }
   );
@@ -822,22 +826,37 @@ $(function() {
 
   $("#lowcutgain").knob(
     {
-      'min':1,
-      'max':50,
+      'min':-10,
+      'max':10,
       'step':1,
       'change': function(event){
         //var amnt = Math.abs(25 - event);
-        biquadFilter.gain.value = 50 - event;
+        sg5.gain.value = event;
         //console.log(amnt);
 
       }
     }
   );
 
-
-// trigger re-play sound
+// trigger evolve from keyboard
+// trigger REPLAY sound
   $('body').keyup(function(e){
-    if(e.keyCode == 32){
+    if(e.keyCode == 49){
+       // user has pressed space
+       if( currentMemberIndex !== undefined ) {
+
+         $('#evolve').click();
+        } else {
+          alert("Please, select a waveform first.");
+          return;
+        }
+    }
+  });
+
+
+// trigger REPLAY sound
+  $('body').keyup(function(e){
+    if(e.keyCode == 18){
        // user has pressed space
        if( currentMemberIndex !== undefined ) {
          currentIndividualPeriodicWaves =
@@ -906,7 +925,7 @@ $(function() {
   $("#reverbgain").knob(
     {
       'min':0,
-      'max':10,
+      'max':100,
       'step':1,
       'change': function(event){
         sg3.gain.value = event;
@@ -921,8 +940,8 @@ $(function() {
 $("#send1").knob(
   {
     'min':0,
-    'max':10,
-    'step':1,
+    'max':1,
+    'step':0.1,
     'change': function(event){
       send1.gain.value = event;
     }
@@ -931,8 +950,8 @@ $("#send1").knob(
 $("#send2").knob(
   {
     'min':0,
-    'max':10,
-    'step':1,
+    'max':1,
+    'step':0.1,
     'change': function(event){
       send2.gain.value = event;
     }
@@ -948,7 +967,16 @@ $("#send3").knob(
     }
   }
 );
-
+$("#send4").knob(
+  {
+    'min':0,
+    'max':10,
+    'step':1,
+    'change': function(event){
+      send4.gain.value = event;
+    }
+  }
+);
 
 
 /////////////////////////////////////////
@@ -979,14 +1007,14 @@ $("#send3").knob(
       }
     }
   );
-
+/*
   var commonMutationCountSliderOptions = {
     orientation: "horizontal",
     range: "min",
     max: 5,
     value: 0
   };
-
+*/
   $("#initialMutationCount").knob(
     {
       'min':0,
@@ -1024,7 +1052,7 @@ $("#send3").knob(
   );
 
 
-
+// clipFactor
   $("#clippingAmount").knob(
     {
       'min':0,
@@ -1223,66 +1251,8 @@ var impulseResponse = function ( duration, decay, reverse ) {
 ///////////////////////////////////////////
 // connect nodes
 
-function hookup(){
-
-  if(inputType == "live"){
-    source  = audioContext.createMediaStreamSource(streamer);
-    isPlaying = false;
-  }else{
-    source = audioContext.createBufferSource();
-    isPlaying = true;
-  }
-
-  processor = audioContext.createScriptProcessor(0, 1, 1);
-
-  // distortion
-  distortion.connect(distGain);
-  distGain.connect(send1);
-  distortion.connect(send1);
-  send1.connect(compressor);
-  // reverb
-  convolver.connect(convGain);
-  convGain.connect(send2);
-  convolver.connect(send2);
-  send2.connect(compressor);
-
-  // processor
-  processor.connect(procGain);
-  procGain.connect(send3);
-  processor.connect(send3);
-  send3.connect(compressor);
-
 /*
-  // low-cut filter
-  biquadFilter.connect(filterGain);
-  biquadFilter.connect(send4);
-  send4.connect(compressor);
-*/
-  //source.connect(sourceGain);
-  source.connect(sg1);
-  source.connect(sg2);
-  source.connect(sg3);
-  source.connect(sg4);
-
-  sg1.connect(compressor);
-  sg2.connect(distortion);
-  sg3.connect(convolver);
-  source.connect(analyser);
-  analyser.connect(processor);
-  sg4.connect(processor);
-  //sg4.connect(processor);
-//  processor.connect(biquadFilter);
-
-  //procGain.connect(biquadFilter);
-
-  compressor.connect(masterGain);
-
-  masterGain.connect(audioContext.destination);
-  masterGain.connect(recorderGain);
-
-  masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
-  // (duration, decay, reverse)
-  convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+function hookup(){
 
   process();
 }
@@ -1310,11 +1280,87 @@ function stop(){
 
 function process(){
 
+}
+
+*/
+/*
+function nodeGraph(){
+  // distortion
+  distortion.connect(send1);
+  send1.connect(compressor);
+  // reverb
+  convolver.connect(send2);
+  send2.connect(compressor);
+  // processor
+//  this.processor.connect(send3);
+  send3.connect(compressor);
+
+  biquadFilter.connect(send4);
+  send4.connect(compressor);
+
+  //sourceGain = audioContext.createGain();
+  //sourceGain.gain.value = 0.7;
+
+  //this.source.connect(sg_dry);
+  sg_dry.connect(masterGain);
+
+  //this.source.connect(sg_wet);
+  sg_wet.connect(masterGain);
+
+  sg_wet.connect(sg1);
+  sg_wet.connect(sg2);
+  sg_wet.connect(sg3);
+  sg_wet.connect(sg4);
+  sg_wet.connect(sg5);
+
+  sg1.connect(compressor);
+  sg2.connect(distortion);
+  sg3.connect(convolver);
+  sg4.connect(this.processor);
+  sg5.connect(biquadFilter);
+
+//  this.source.connect(analyser);
+  analyser.connect(this.processor);
+  this.processor.connect(masterGain);
+
+  //  processor.connect(biquadFilter);
+  //procGain.connect(biquadFilter);
+
+  compressor.connect(masterGain);
+
+  masterGain.connect(audioContext.destination);
+  masterGain.connect(recorderGain);
+  //masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
+
+  // (duration, decay, reverse)
+  convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+}
+*/
+/*
+function stop(carrier){
+  // cut reverb
+  convolver.buffer = impulseResponse(0.1,0.1,false);
+  console.log("STOPPING");
+
+  if(isPlaying){
+    isPlaying = false;
+    source.stop(0);
+  }
+  source.disconnect();
+  source = null;
+  processor.disconnect();
+  processor.onaudioprocess = null;
+  //processor = null;
+}
+*/
+// var processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+function Carrier(  ) {
+  console.log("new carrier starting");
   ///////////////////////////////////////
   // real-time editing
-  // Why must the processor stay here ?
-  //var processor = audioContext.createScriptProcessor(0, 1, 1);
-  processor.onaudioprocess = function(event){
+  this.processor = audioContext.createScriptProcessor(512, 1, 1);
+  this.processor.onaudioprocess = function(event){
     //console.log("PROC");
     // audio input
     var inputBuff = event.inputBuffer;
@@ -1330,42 +1376,32 @@ function process(){
       var outputData = outputBuff.getChannelData(channel);
 
       // audio samples
-      for (var sample = 0; sample < inputBuff.length; sample += 2) {
+      for (var sample = 0; sample < inputBuff.length; sample += 1) {
 
         // make output equal to the same as the input
         outputData[sample] = inputData[sample];  //
 
-        // carrier and modulation waves are the same for this purpose. I kept the carrier
         var cppn = carrierWave[sample]*clipFactor;
 
         // Amplitude modulation
         if(amplitude){
-          outputData[sample] *= (cppn*dryAmount) + (1.0-dryAmount) ;
+
+          outputData[sample] *= (cppn*dryAmount);  // carrierWave[sample]/1.0; // cppn*dryAmount);
         }
 
         // Multiplication modulation
         if(addition){
-          outputData[sample] += (cppn*dryAmount + (1.0-dryAmount) ) ;
+          outputData[sample] += (cppn*dryAmount) ;
         }
 
         // envelope'ish modulation
         if(squareroot){
-          outputData[sample] *= ( (cppn*squareTable[sample]*dryAmount) + (1.0-dryAmount) );
+          outputData[sample] *= ( (cppn*squareTable[sample]*dryAmount));
         }
 
-        ///////////////////////////////////
-        // clipping
-        clipOver = outputData[sample] -1.0;
-        clipUnder = outputData[sample] +1.0;
-        if(clipOver > 0.0){
-          outputData[sample] -= (clipOver+0.1);
-        }else if(clipUnder < 0.0){
-          outputData[sample] += (clipUnder-0.1);
-        }
-
-        ////////////////////////////////////
       }
     }
+
 
     //////////////////////////////
     // frequency spectrum
@@ -1383,61 +1419,106 @@ function process(){
 
 
 
-
-function Carrier(  ) {
-
-}
-
 Carrier.prototype = {
   noteOn: function(  ) {
-      source.start();
-      isPlaying = true;
+    this.source.start();
+    isPlaying = true;
   },
   noteOff: function(  ) {
+    convolver.buffer = impulseResponse(0.1,0.1,false);
+    if(isPlaying){
+      console.log("note off");
+      isPlaying = false;
+      this.source.stop(0);
+    }
+    this.source.disconnect();
+    this.source = null;
+    this.processor.disconnect();
+    this.processor.onaudioprocess = null;
+  },
+  hookup: function(){
+    this.source = audioContext.createBufferSource();
+    this.source.addEventListener('ended',function(){console.log("stop...");})
 
-  }
-  /*
-  , // load audio
-  load: function(){
-    //console.log("load");
+    if(inputType == "live"){
+      console.log("LIVE");
+      this.source  = audioContext.createMediaStreamSource(streamer);
+      isPlaying = false;
+    }else{
+      isPlaying = true;
+    }
+
+    //////////////////////////////////////////////////////
+    //this.procGain = audioContext.createGain();
+    //this.procGain.gain.value = 5;
+
+    // distortion
+    distortion.connect(send1);
+    send1.connect(compressor);
+    // reverb
+    convolver.connect(send2);
+    send2.connect(compressor);
+    // processor
+    this.processor.connect(send3);
+    send3.connect(compressor);
+
+    biquadFilter.connect(send4);
+    send4.connect(compressor);
+
+    //sourceGain = audioContext.createGain();
+    //sourceGain.gain.value = 0.7;
+
+    this.source.connect(sg_dry);
+    sg_dry.connect(masterGain);
+
+    this.source.connect(sg_wet);
+    sg_wet.connect(masterGain);
+
+    sg_wet.connect(sg1);
+    sg_wet.connect(sg2);
+    sg_wet.connect(sg3);
+    sg_wet.connect(sg4);
+    sg_wet.connect(sg5);
+
+    sg1.connect(compressor);
+    sg2.connect(distortion);
+    sg3.connect(convolver);
+    sg4.connect(this.processor);
+    sg5.connect(biquadFilter);
+
+    this.source.connect(analyser);
+    analyser.connect(this.processor);
+    this.processor.connect(masterGain);
+
+    //  processor.connect(biquadFilter);
+    //procGain.connect(biquadFilter);
+
+    compressor.connect(masterGain);
+
+    masterGain.connect(audioContext.destination);
+    masterGain.connect(recorderGain);
+    //masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
+
+    // (duration, decay, reverse)
+    convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+  },
+  loadAudio: function(){
     request = new XMLHttpRequest();
-    request.open('GET', 'tst.wav', true);
+    request.open('GET', 'Audio3.wav', true);
     request.responseType = 'arraybuffer';
+
+    var self = this;
     request.onload = function() {
       audioContext.decodeAudioData(request.response, function(data) {
-          // source.buffer = null;
-          source.buffer = data;
-          //console.log("loaded");
-          //hookup();
+        self.source.buffer = data;
         },
         function(e){"Error with decoding audio data" + e.err});
     }
     request.send();
     // live input
   }
-  */
-}
-
-
-function load(){
-  //console.log("load");
-  request = new XMLHttpRequest();
-  request.open('GET', 'grund.wav', true);
-  request.responseType = 'arraybuffer';
-  request.onload = function() {
-    audioContext.decodeAudioData(request.response, function(data) {
-        // source.buffer = null;
-        source.buffer = data;
-        //console.log("loaded");
-        //hookup();
-      },
-      function(e){"Error with decoding audio data" + e.err});
-  }
-  request.send();
-  // live input
 
 }
-
 
 //////////////////////////////////////////////
 // connect michrophone
@@ -1478,29 +1559,37 @@ function success(stream) {
 }
 
 
-function createAndPlayModulatorsForFrequency(  ) {
+function newCarrier(  ) {
   var carrier = new Carrier(  );
-  return {
+
+  /*return {
     "carrier": carrier,
-  };
+  };*/
+
+  return carrier;
 }
 
+var oldCarrier = null;
 function playSelectedWaveformsForOneQuarterNoteC3(  ) {
-
   // stop previous sound
-  if(inputType == "sample"){ // use default audio sample
-    if(isPlaying){
-      stop();
-    }
-    load();
-    hookup();
-    source.start();
-    isPlaying = true;
-  }else{
-    hookup();
+  if(oldCarrier != null){
+    oldCarrier.noteOff();
   }
-
-
+  // hookup new one
+  var waveshape = newCarrier();
+  if(inputType == "sample"){ // use default audio sample
+    //console.log("play selected waveform");
+    //if(isPlaying){
+    //}
+    waveshape.hookup()
+    waveshape.loadAudio();
+    waveshape.noteOn();
+  }else{
+    waveshape.hookup();
+    //hookup();
+  }
+  // remember previous carrier
+  oldCarrier = waveshape;
 
 }
 
