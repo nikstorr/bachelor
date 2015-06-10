@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>Wallyfier</title>
+  <title>Wallyfier version 1.06 Beta </title>
  <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
 
 
@@ -21,6 +21,7 @@
 
 
   <script>
+    /*
     var i = 0;
     $(document).ready(function()
     {
@@ -30,7 +31,7 @@
     	});
       // $("#variation")[0].checked = true;
     });
-
+*/
 
   </script>
 
@@ -209,7 +210,7 @@ h4{line-height:4pt;}
           <div class="wraper">
             <div class="boxcol">
                 <div >
-                  <h1>Wallyfier</h1>
+                  <h1>Wallyfier  version 1.06 Beta </h1>
                   <input type="button" class="button" id="mute" value="mute" />
 <!--                  <input type="button" class="button" id="mute2" value="mute wet" />
                   <input type="button" class="button" id="mute3" value="mute dry" /> -->
@@ -229,11 +230,12 @@ h4{line-height:4pt;}
     <div class="box">
       <div class="boxcol-set">
         <div class="boxcol">
-          <h3>Upload Audio File</h3>
+          <h3><!-- Upload Audio File --> </h3>
             <div class="boxcol-set" STYLE="background: #000000;">
+              <!--
               <div class="boxcol" id="live" >
                 <div id="fileuploader">Upload</div>
-              </div>
+              </div>-->
 
             </div>
           </div>
@@ -269,8 +271,8 @@ h4{line-height:4pt;}
                   <input type="text" id="send3" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
                 <div class="knobber">
-                  <p><label for="amount-send4">Low cut:</label></p>
-                  <input type="text" id="send4" value="2" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <p><label for="amount-send4">Highpass:</label></p>
+                  <input type="text" id="send4" value="0" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
               </div>
 
@@ -342,11 +344,11 @@ h4{line-height:4pt;}
 
 
                   <div class="knobber">
-                    <p><label for="clipping-amount">Clip-level:</label></p>
+                    <p><label for="clipping-amount">Clip:</label></p>
                     <input type="text" id="clippingAmount" value="0.3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                   <div class="knobber">
-                    <p><label for="source-amount">Source-level:</label></p>
+                    <p><label for="source-amount">Source:</label></p>
                     <input type="text" id="sourceamount" value="0.3" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                   </div>
                 </div>
@@ -396,11 +398,11 @@ h4{line-height:4pt;}
               <div class="boxcol">
                 <div class="knobber">
                   <p><label for="freq-lowcut">Freq :</label></p>
-                  <input type="text" id="lowcut" value="1000" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="lowcut" value="1800" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
                 <div class="knobber">
                   <p><label for="amount-lowcut">Gain :</label></p>
-                  <input type="text" id="lowcutgain" value="0" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
+                  <input type="text" id="lowcutgain" value="-9" class="dial" data-width="60" data-fgColor="#50BEEB" data-skin="tron" data-thickness=".3" data-displayPrevious=false  data-linecap=round>
                 </div>
 
               </div> <!-- boxcol -->

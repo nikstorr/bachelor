@@ -25,9 +25,9 @@ var sg5 = audioContext.createGain(); // not used yet
 
 // low cut filter
 var biquadFilter = audioContext.createBiquadFilter();
-biquadFilter.type = "peaking";
-biquadFilter.frequency.value = 1000;
-biquadFilter.Q.value = 100;
+biquadFilter.type = "highpass";
+biquadFilter.frequency.value = 440;
+biquadFilter.Q.value = 0;
 var filterGain = audioContext.createGain();
 
 // analyser
@@ -43,13 +43,13 @@ recorderGain.connect(audioContext.destination);
 
 var masterGain = audioContext.createGain();
 masterGain.gain.value = 0.45;
+var sourceGain = audioContext.createGain();
+sourceGain.gain.value = 0.7;
 
 var inputType = "sample";
 var audioData = null;
 var audioBuffer;
 var sourceBuffer;
-//var source = audioContext.createBufferSource();    // sound sources
-var sourceGain = audioContext.createGain();
 
 var dryAmount = 0.5; // < dry - wet > audio
 // live input stream buffer
@@ -568,11 +568,9 @@ $(function() {
     if( parentIndexes.length < 1 ) {
       alert("please, select one or more parents before evolving");
     }else{
-      masterGain.disconnect();
       for(var i = 0; i < breedGenerations; i++){
           evolveNextGeneration();
       }
-      masterGain.connect(audioContext.destination);
     }
   });
 
@@ -732,7 +730,7 @@ $(function() {
       'max':1,
       'step':0.1,
     	'change': function(event){
-        sg1.gain.value = event;
+        sourceGain.gain.value = event;
       }
     }
   );
@@ -740,7 +738,7 @@ $(function() {
   $("#distortion").knob(
     {
       'min':0,
-      'max':500,
+      'max':800,
       'step':20,
     	'change': function(event){
         distortionGain = event;
@@ -815,7 +813,7 @@ $(function() {
   $("#lowcut").knob(
     {
       'min':0,
-      'max':18000,
+      'max':6000,
       'step':100,
       'change': function(event){
         biquadFilter.frequency.value = event;
@@ -826,12 +824,12 @@ $(function() {
 
   $("#lowcutgain").knob(
     {
-      'min':-10,
-      'max':10,
+      'min':-20,
+      'max':20,
       'step':1,
       'change': function(event){
         //var amnt = Math.abs(25 - event);
-        sg5.gain.value = event;
+        sg5.gain.value = 20-event;
         //console.log(amnt);
 
       }
@@ -1248,118 +1246,11 @@ var impulseResponse = function ( duration, decay, reverse ) {
 }
 
 
-///////////////////////////////////////////
-// connect nodes
-
-/*
-function hookup(){
-
-  process();
-}
-
-function stop(){
-
-    // cut reverb
-    convolver.buffer = impulseResponse(0.1,0.1,false);
-    // convolver.buffer = null;
-
-    // turn down volume
-    masterGain.disconnect(audioContext.destination);
-
-    //console.log("stop");
-    if(isPlaying){
-      isPlaying = false;
-      //source.stop(0);
-    }
-    source.disconnect();
-    processor.disconnect();
-    processor.onaudioprocess = null;
-    processor = null;
-
-}
-
-function process(){
-
-}
-
-*/
-/*
-function nodeGraph(){
-  // distortion
-  distortion.connect(send1);
-  send1.connect(compressor);
-  // reverb
-  convolver.connect(send2);
-  send2.connect(compressor);
-  // processor
-//  this.processor.connect(send3);
-  send3.connect(compressor);
-
-  biquadFilter.connect(send4);
-  send4.connect(compressor);
-
-  //sourceGain = audioContext.createGain();
-  //sourceGain.gain.value = 0.7;
-
-  //this.source.connect(sg_dry);
-  sg_dry.connect(masterGain);
-
-  //this.source.connect(sg_wet);
-  sg_wet.connect(masterGain);
-
-  sg_wet.connect(sg1);
-  sg_wet.connect(sg2);
-  sg_wet.connect(sg3);
-  sg_wet.connect(sg4);
-  sg_wet.connect(sg5);
-
-  sg1.connect(compressor);
-  sg2.connect(distortion);
-  sg3.connect(convolver);
-  sg4.connect(this.processor);
-  sg5.connect(biquadFilter);
-
-//  this.source.connect(analyser);
-  analyser.connect(this.processor);
-  this.processor.connect(masterGain);
-
-  //  processor.connect(biquadFilter);
-  //procGain.connect(biquadFilter);
-
-  compressor.connect(masterGain);
-
-  masterGain.connect(audioContext.destination);
-  masterGain.connect(recorderGain);
-  //masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
-
-  // (duration, decay, reverse)
-  convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
-}
-*/
-/*
-function stop(carrier){
-  // cut reverb
-  convolver.buffer = impulseResponse(0.1,0.1,false);
-  console.log("STOPPING");
-
-  if(isPlaying){
-    isPlaying = false;
-    source.stop(0);
-  }
-  source.disconnect();
-  source = null;
-  processor.disconnect();
-  processor.onaudioprocess = null;
-  //processor = null;
-}
-*/
-// var processor = audioContext.createScriptProcessor(1024, 1, 1);
-
 function Carrier(  ) {
   console.log("new carrier starting");
   ///////////////////////////////////////
   // real-time editing
-  this.processor = audioContext.createScriptProcessor(512, 1, 1);
+  this.processor = audioContext.createScriptProcessor(256, 1, 1);
   this.processor.onaudioprocess = function(event){
     //console.log("PROC");
     // audio input
@@ -1374,6 +1265,7 @@ function Carrier(  ) {
 
       var inputData = inputBuff.getChannelData(channel);
       var outputData = outputBuff.getChannelData(channel);
+      var over, under;
 
       // audio samples
       for (var sample = 0; sample < inputBuff.length; sample += 1) {
@@ -1397,6 +1289,16 @@ function Carrier(  ) {
         // envelope'ish modulation
         if(squareroot){
           outputData[sample] *= ( (cppn*squareTable[sample]*dryAmount));
+        }
+
+        /////////////////////////////////////////////////
+        // clipping
+        if(outputData[sample] > 1){
+          // clip sample value over 1
+          outputData[sample] -= (outputData[sample] -1)
+        }else if(outputData[sample] < -1){
+          // clip sample value under -1
+          outputData[sample] -= (outputData[sample] +1)
         }
 
       }
@@ -1465,13 +1367,12 @@ Carrier.prototype = {
     biquadFilter.connect(send4);
     send4.connect(compressor);
 
-    //sourceGain = audioContext.createGain();
-    //sourceGain.gain.value = 0.7;
-
-    this.source.connect(sg_dry);
+    this.source.connect(sourceGain);
+    sourceGain.connect(sg_dry);
     sg_dry.connect(masterGain);
 
-    this.source.connect(sg_wet);
+    sourceGain.connect(sg_wet);
+    //this.source.connect(sg_wet);
     sg_wet.connect(masterGain);
 
     sg_wet.connect(sg1);
@@ -1486,25 +1387,34 @@ Carrier.prototype = {
     sg4.connect(this.processor);
     sg5.connect(biquadFilter);
 
+    this.processor.connect(biquadFilter);
+
     this.source.connect(analyser);
     analyser.connect(this.processor);
     this.processor.connect(masterGain);
 
-    //  processor.connect(biquadFilter);
+    //processor.connect(biquadFilter);
     //procGain.connect(biquadFilter);
 
     compressor.connect(masterGain);
 
     masterGain.connect(audioContext.destination);
     masterGain.connect(recorderGain);
-    //masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
+
+//    masterGain.gain.value = parseInt($('#mastergain').val()) / parseInt(100);
+//    sourceGain.gain.value = parseInt($('#sourceamount').val()) / parseInt(1);
+//    sg2.gain.value = parseInt($('#distortiongain').val()) / parseInt(1);
+//    sg3.gain.value = parseInt($('#reverbgain').val()) / parseInt(100);
+//    sg4.gain.value = parseInt($('#cppnamount').val()) / parseInt(10);
+    //clipFactor = parseInt($('#clippingAmount').val()) / parseInt(1);
 
     // (duration, decay, reverse)
     convolver.buffer = impulseResponse($( "#duration" ).val(),$( "#decay" ).val(), $("#reverse")[0].checked);
+
   },
   loadAudio: function(){
     request = new XMLHttpRequest();
-    request.open('GET', 'Audio3.wav', true);
+    request.open('GET', 'clean_2.wav', true);
     request.responseType = 'arraybuffer';
 
     var self = this;
